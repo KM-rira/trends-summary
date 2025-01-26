@@ -59,50 +59,54 @@ type Repository struct {
 	URL         string
 }
 
-// FetchGitHubTrending fetches trending repositories from GitHub
-func FetchGitHubTrending() ([]Repository, error) {
-	var repositories []Repository
+// GitHubTrendingHandler fetches trending repositories from GitHub
+func GitHubTrendingHandler(c echo.Context) error {
+	var trendingRepos []map[string]string
 
-	// Request the HTML page.
+	// GitHub Trendingページをスクレイピング
 	res, err := http.Get("https://github.com/trending")
 	if err != nil {
-		return repositories, err
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to fetch GitHub Trending"})
 	}
 	defer res.Body.Close()
 
-	if res.StatusCode != 200 {
-		return repositories, fmt.Errorf("status code error: %d %s", res.StatusCode, res.Status)
+	if res.StatusCode != http.StatusOK {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "GitHub Trending page returned non-200 status"})
 	}
 
-	// Load the HTML document
+	// HTMLドキュメントをパース
 	doc, err := goquery.NewDocumentFromReader(res.Body)
 	if err != nil {
-		return repositories, err
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to parse GitHub Trending page"})
 	}
 
-	// Find the repository items
+	// トレンドリポジトリを抽出
 	doc.Find("article.Box-row").Each(func(i int, s *goquery.Selection) {
-		name := s.Find("h1.h3 a").Text()
-		description := s.Find("p.col-9").Text()
-		url, _ := s.Find("h1.h3 a").Attr("href")
+		// リポジトリ名とURL
+		repoAnchor := s.Find("h2.h3 a")
+		repoName := strings.TrimSpace(repoAnchor.Text())
+		repoName = strings.ReplaceAll(repoName, "\n", " / ") // 改行を " / " に置換
+		repoURL, _ := repoAnchor.Attr("href")
 
-		repositories = append(repositories, Repository{
-			Name:        strings.TrimSpace(name),
-			Description: strings.TrimSpace(description),
-			URL:         "https://github.com" + strings.TrimSpace(url),
+		// 説明
+		repoDescription := strings.TrimSpace(s.Find("p").Text())
+
+		// 言語
+		repoLanguage := strings.TrimSpace(s.Find("[itemprop='programmingLanguage']").Text())
+
+		// スター数
+		repoStars := strings.TrimSpace(s.Find("a.Link--muted").First().Text())
+
+		// リポジトリ情報を配列に追加
+		trendingRepos = append(trendingRepos, map[string]string{
+			"name":        repoName,
+			"url":         "https://github.com" + strings.TrimSpace(repoURL),
+			"description": repoDescription,
+			"language":    repoLanguage,
+			"stars":       repoStars,
 		})
 	})
 
-	return repositories, nil
-}
-
-// GitHubTrendingHandler handles the /trending endpoint
-func GitHubTrendingHandler(c echo.Context) error {
-	repos, err := FetchGitHubTrending()
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": fmt.Sprintf("Failed to fetch GitHub trending repositories: %v", err),
-		})
-	}
-	return c.JSON(http.StatusOK, repos)
+	// JSONで返却
+	return c.JSON(http.StatusOK, trendingRepos)
 }

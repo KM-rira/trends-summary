@@ -18,7 +18,7 @@ func main() {
 	// RSSフィード用のエンドポイント
 	e.GET("/rss", handlers.Index) // JSONレスポンスを返すエンドポイント
 	// GitHubトレンド用のエンドポイント
-	e.GET("/trending", handlers.GitHubTrendingHandler)
+	e.GET("/github-trending", handlers.GitHubTrendingHandler)
 
 	// サーバーの起動
 	e.Logger.Fatal(e.Start(":9998"))

@@ -1,124 +1,212 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RSSフィード表示</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      line-height: 1.6;
-      margin: 0;
-      padding: 0;
-      background-color: #f9f9f9;
-    }
-    .container {
-      max-width: 800px;
-      margin: 20px auto;
-      padding: 20px;
-      background: #fff;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    }
-    h1 {
-      text-align: center;
-      color: #333;
-    }
-    .feed-item {
-      border-bottom: 1px solid #ddd;
-      padding: 10px 0;
-    }
-    .feed-item:last-child {
-      border-bottom: none;
-    }
-    .feed-item h2 {
-      margin: 0 0 10px;
-      font-size: 1.2em;
-      color: #007BFF;
-    }
-    .feed-item h2 a {
-      text-decoration: none;
-      color: inherit;
-    }
-    .feed-item h2 a:hover {
-      text-decoration: underline;
-    }
-    .feed-item p {
-      margin: 0 0 5px;
-      color: #555;
-    }
-    .feed-item small {
-      color: #999;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>トレンド表示</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f9f9f9;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #fff;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            text-align: center;
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        pre {
+            background-color: #f9f9f9;
+            padding: 10px;
+            border: 1px solid #ddd;
+            overflow-x: auto;
+        }
+    </style>
 </head>
 <body>
-<div class="container">
-  <h1>RSSフィード記事</h1>
-  <table id="feed-table" border="1" style="width: 100%; border-collapse: collapse;">
-    <thead>
-      <tr>
-        <th>タイトル</th>
-        <th>説明</th>
-        <th>公開日</th>
-        <th>リンク</th>
-      </tr>
-    </thead>
-    <tbody id="feed-body">
-      <!-- データがここに挿入されます -->
-    </tbody>
-  </table>
-</div>
+    <!-- RSSフィードセクション -->
+    <div class="container">
+        <h1>RSSフィード記事</h1>
+        <table id="rss-feed-table">
+            <thead>
+                <tr>
+                    <th>タイトル</th>
+                    <th>説明</th>
+                    <th>公開日</th>
+                    <th>リンク</th>
+                </tr>
+            </thead>
+            <tbody id="rss-feed-body">
+                <!-- データがここに挿入されます -->
+            </tbody>
+        </table>
+    </div>
 
-  <script>
-    // RSSフィードのJSONデータを取得
-fetch('/rss')
-  .then(response => {
-    if (!response.ok) {
-      throw new Error(`HTTPエラー: ${response.status}`);
-    }
-    return response.json();
-  })
-  .then(data => {
-    const feedBody = document.getElementById('feed-body');
+    <!-- GitHubトレンド一覧セクション -->
+    <div class="container">
+        <h1>GitHubデイリートレンド</h1>
+        <table id="github-trending-table">
+            <thead>
+                <tr>
+                    <th>リポジトリ名</th>
+                    <th>説明</th>
+                    <th>言語</th>
+                    <th>スター数</th>
+                    <th>リンク</th>
+                </tr>
+            </thead>
+            <tbody id="github-trending-body">
+                <!-- データがここに挿入されます -->
+            </tbody>
+        </table>
+    </div>
 
-    // データをテーブルに追加
-    data.items.forEach(item => {
-      const row = document.createElement('tr');
+    <!-- 全データ出力セクション -->
+    <div class="container">
+        <h2>全データの出力</h2>
+        <pre id="github-trending-raw">
+            <!-- JSONデータがここに挿入されます -->
+        </pre>
+    </div>
 
-      const titleCell = document.createElement('td');
-      titleCell.textContent = item.title || 'No title';
-      row.appendChild(titleCell);
+    <script>
+        // RSSフィードのJSONデータを取得
+        fetch('/rss')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTPエラー: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                const tbody = document.getElementById('rss-feed-body');
 
-      const descriptionCell = document.createElement('td');
-      descriptionCell.innerHTML = item.description || 'No description';
-      row.appendChild(descriptionCell);
+                // データをテーブルに追加
+                data.items.forEach(item => {
+                    const row = document.createElement('tr');
 
-      const publishedCell = document.createElement('td');
-      publishedCell.textContent = item.published || 'No date';
-      row.appendChild(publishedCell);
+                    const titleCell = document.createElement('td');
+                    titleCell.textContent = item.title || 'No title';
+                    row.appendChild(titleCell);
 
-      const linkCell = document.createElement('td');
-      const link = document.createElement('a');
-      link.href = item.link;
-      link.textContent = '記事を見る';
-      link.target = '_blank';
-      linkCell.appendChild(link);
-      row.appendChild(linkCell);
+                    const descriptionCell = document.createElement('td');
+                    descriptionCell.textContent = item.description || 'No description';
+                    row.appendChild(descriptionCell);
 
-      feedBody.appendChild(row);
-    });
-  })
-  .catch(error => {
-    console.error('Fetch Error:', error);
-    const feedBody = document.getElementById('feed-body');
-    const row = document.createElement('tr');
-    const errorCell = document.createElement('td');
-    errorCell.colSpan = 4; // 4列分をマージ
-    errorCell.textContent = 'フィードの取得に失敗しました。';
-    row.appendChild(errorCell);
-    feedBody.appendChild(row);
-  });
-  </script>
+                    const publishedCell = document.createElement('td');
+                    publishedCell.textContent = item.published || 'No date';
+                    row.appendChild(publishedCell);
+
+                    const linkCell = document.createElement('td');
+                    const link = document.createElement('a');
+                    link.href = item.link;
+                    link.textContent = '記事を見る';
+                    link.target = '_blank';
+                    linkCell.appendChild(link);
+                    row.appendChild(linkCell);
+
+                    tbody.appendChild(row);
+                });
+            })
+            .catch(error => {
+                console.error('Fetch Error:', error);
+                const tbody = document.getElementById('rss-feed-body');
+                const row = document.createElement('tr');
+                const errorCell = document.createElement('td');
+                errorCell.colSpan = 4;
+                errorCell.textContent = 'RSSフィードの取得に失敗しました。';
+                row.appendChild(errorCell);
+                tbody.appendChild(row);
+            });
+
+        // GitHubトレンドデータのJSONを取得
+    fetch('/github-trending')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTPエラー: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            const tbody = document.getElementById('github-trending-body');
+
+            // データをテーブルに追加
+            data.forEach(item => {
+                const row = document.createElement('tr');
+
+                // リポジトリ名
+                const nameCell = document.createElement('td');
+                nameCell.textContent = item.name || 'No name';
+                row.appendChild(nameCell);
+
+                // 説明
+                const descriptionCell = document.createElement('td');
+                descriptionCell.textContent = item.description || 'No description';
+                row.appendChild(descriptionCell);
+
+                // 言語
+                const languageCell = document.createElement('td');
+                languageCell.textContent = item.language || 'N/A';
+                row.appendChild(languageCell);
+
+                // スター数
+                const starsCell = document.createElement('td');
+                starsCell.textContent = item.stars || '0';
+                row.appendChild(starsCell);
+
+                // リンク
+                const linkCell = document.createElement('td');
+                const link = document.createElement('a');
+                link.href = item.url;
+                link.textContent = 'リポジトリを見る';
+                link.target = '_blank';
+                linkCell.appendChild(link);
+                row.appendChild(linkCell);
+
+                tbody.appendChild(row);
+            });
+
+            // JSON全データ表示用
+            const rawOutput = document.getElementById('github-trending-raw');
+            rawOutput.textContent = JSON.stringify(data, null, 2);
+        })
+        .catch(error => {
+            console.error('Fetch Error:', error);
+
+            // テーブルのエラー表示
+            const tbody = document.getElementById('github-trending-body');
+            const row = document.createElement('tr');
+            const errorCell = document.createElement('td');
+            errorCell.colSpan = 5;
+            errorCell.textContent = 'GitHubトレンドデータの取得に失敗しました。';
+            row.appendChild(errorCell);
+            tbody.appendChild(row);
+
+            // JSON全データのエラー表示
+            const rawOutput = document.getElementById('github-trending-raw');
+            rawOutput.textContent = 'エラー: データの取得に失敗しました。';
+        });
+    </script>
 </body>
 </html>
-
