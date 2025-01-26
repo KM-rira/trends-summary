@@ -91,54 +91,54 @@
     </div>
 
     <script>
-        // RSSフィードのJSONデータを取得
-        fetch('/rss')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTPエラー: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                const tbody = document.getElementById('rss-feed-body');
+// RSSフィードのJSONデータを取得
+fetch('/rss')
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTPエラー: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        const tbody = document.getElementById('rss-feed-body');
 
-                // データをテーブルに追加
-                data.items.forEach(item => {
-                    const row = document.createElement('tr');
+        // データをテーブルに追加
+        data.items.forEach(item => {
+            const row = document.createElement('tr');
 
-                    const titleCell = document.createElement('td');
-                    titleCell.textContent = item.title || 'No title';
-                    row.appendChild(titleCell);
+            const titleCell = document.createElement('td');
+            titleCell.textContent = item.title || 'No title';
+            row.appendChild(titleCell);
 
-                    const descriptionCell = document.createElement('td');
-                    descriptionCell.textContent = item.description || 'No description';
-                    row.appendChild(descriptionCell);
+            const descriptionCell = document.createElement('td');
+            descriptionCell.innerHTML = item.description || 'No description'; // innerHTMLに変更
+            row.appendChild(descriptionCell);
 
-                    const publishedCell = document.createElement('td');
-                    publishedCell.textContent = item.published || 'No date';
-                    row.appendChild(publishedCell);
+            const publishedCell = document.createElement('td');
+            publishedCell.textContent = item.published || 'No date';
+            row.appendChild(publishedCell);
 
-                    const linkCell = document.createElement('td');
-                    const link = document.createElement('a');
-                    link.href = item.link;
-                    link.textContent = '記事を見る';
-                    link.target = '_blank';
-                    linkCell.appendChild(link);
-                    row.appendChild(linkCell);
+            const linkCell = document.createElement('td');
+            const link = document.createElement('a');
+            link.href = item.link;
+            link.textContent = '記事を見る';
+            link.target = '_blank';
+            linkCell.appendChild(link);
+            row.appendChild(linkCell);
 
-                    tbody.appendChild(row);
-                });
-            })
-            .catch(error => {
-                console.error('Fetch Error:', error);
-                const tbody = document.getElementById('rss-feed-body');
-                const row = document.createElement('tr');
-                const errorCell = document.createElement('td');
-                errorCell.colSpan = 4;
-                errorCell.textContent = 'RSSフィードの取得に失敗しました。';
-                row.appendChild(errorCell);
-                tbody.appendChild(row);
-            });
+            tbody.appendChild(row);
+        });
+    })
+    .catch(error => {
+        console.error('Fetch Error:', error);
+        const tbody = document.getElementById('rss-feed-body');
+        const row = document.createElement('tr');
+        const errorCell = document.createElement('td');
+        errorCell.colSpan = 4;
+        errorCell.textContent = 'RSSフィードの取得に失敗しました。';
+        row.appendChild(errorCell);
+        tbody.appendChild(row);
+    });
 
         // GitHubトレンドデータのJSONを取得
     fetch('/github-trending')
