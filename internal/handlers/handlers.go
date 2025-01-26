@@ -2,22 +2,22 @@ package handlers
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/labstack/echo/v4"
 	"github.com/mmcdole/gofeed"
+	"github.com/sirupsen/logrus"
 )
 
 // Index はRSSフィードを取得して、HTMLまたはJSONで出力するハンドラーです。
 func Index(c echo.Context) error {
-	log.Println("Indexハンドラーが呼び出されました") // デバッグ用ログ
+	logrus.Info("Indexハンドラーが呼び出されました") // デバッグ用ログ
 
 	// RSSフィードURL
 	rssURL := "https://feed.infoq.com/"
-	log.Println("RSSフィードURL:", rssURL) // デバッグ用ログ
+	logrus.WithField("rssURL", rssURL).Info("RSSフィードURL") // デバッグ用ログ
 
 	// パーサーの作成
 	fp := gofeed.NewParser()
@@ -25,13 +25,13 @@ func Index(c echo.Context) error {
 	// RSSフィードを取得して解析
 	feed, err := fp.ParseURL(rssURL)
 	if err != nil {
-		log.Println("RSSフィード取得エラー:", err) // デバッグ用ログ
+		logrus.WithError(err).Error("RSSフィード取得エラー") // エラーログ
 		return c.JSON(http.StatusInternalServerError, map[string]string{
 			"error": fmt.Sprintf("RSSフィードの取得に失敗しました: %v", err),
 		})
 	}
 
-	log.Println("RSSフィード取得成功:", feed.Title) // デバッグ用ログ
+	logrus.WithField("feedTitle", feed.Title).Info("RSSフィード取得成功") // デバッグ用ログ
 
 	// フィード情報を整形
 	feedItems := []map[string]interface{}{}
@@ -61,22 +61,27 @@ type Repository struct {
 
 // GitHubTrendingHandler fetches trending repositories from GitHub
 func GitHubTrendingHandler(c echo.Context) error {
+	logrus.Info("GitHubTrendingHandlerが呼び出されました") // デバッグ用ログ
+
 	var trendingRepos []map[string]string
 
 	// GitHub Trendingページをスクレイピング
 	res, err := http.Get("https://github.com/trending")
 	if err != nil {
+		logrus.WithError(err).Error("GitHub Trendingページの取得に失敗しました") // エラーログ
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to fetch GitHub Trending"})
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
+		logrus.WithField("statusCode", res.StatusCode).Error("GitHub Trendingページのステータスコードエラー") // エラーログ
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "GitHub Trending page returned non-200 status"})
 	}
 
 	// HTMLドキュメントをパース
 	doc, err := goquery.NewDocumentFromReader(res.Body)
 	if err != nil {
+		logrus.WithError(err).Error("GitHub Trendingページのパースに失敗しました") // エラーログ
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to parse GitHub Trending page"})
 	}
 
@@ -106,6 +111,8 @@ func GitHubTrendingHandler(c echo.Context) error {
 			"stars":       repoStars,
 		})
 	})
+
+	logrus.WithField("repositoriesCount", len(trendingRepos)).Info("GitHubトレンドの取得に成功しました") // デバッグ用ログ
 
 	// JSONで返却
 	return c.JSON(http.StatusOK, trendingRepos)

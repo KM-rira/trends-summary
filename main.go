@@ -1,12 +1,29 @@
 package main
 
 import (
+	"os"
 	"trends-summary/internal/handlers"
 
 	"github.com/labstack/echo/v4" // バージョンを指定
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
+	logFile, err := os.OpenFile("app.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		logrus.Fatalf("ログファイルを開けませんでした: %s", err)
+	}
+	defer logFile.Close()
+
+	// logrusの出力先をログファイルに設定
+	logrus.SetOutput(logFile)
+
+	// ログフォーマットを設定（例: JSONフォーマット）
+	logrus.SetFormatter(&logrus.JSONFormatter{})
+
+	// ログレベルを設定（例: Infoレベル）
+	logrus.SetLevel(logrus.InfoLevel)
+
 	e := echo.New()
 	// 静的ファイルを提供
 	e.Static("/static", "static") // staticディレクトリ内のファイルを提供
