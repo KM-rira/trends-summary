@@ -285,14 +285,14 @@ func AISummary(c echo.Context) error {
 	// JSONエンコード
 	jsonData, err := json.Marshal(requestBody)
 	if err != nil {
-		fmt.Println("リクエストボディのJSONエンコードに失敗:", err)
+		logrus.Error("リクエストボディのJSONエンコードに失敗:", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "リクエストボディのJSONエンコードに失敗しました。"})
 	}
 
 	// HTTP POSTリクエストの作成
 	req, err := http.NewRequest("POST", aiURL, bytes.NewBuffer(jsonData))
 	if err != nil {
-		fmt.Println("HTTPリクエストの作成に失敗:", err)
+		logrus.Error("HTTPリクエストの作成に失敗:", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "HTTPリクエストの作成に失敗しました。"})
 	}
 
@@ -307,7 +307,7 @@ func AISummary(c echo.Context) error {
 	// リクエストの送信
 	resp, err = client.Do(req)
 	if err != nil {
-		fmt.Println("HTTPリクエストの送信に失敗:", err)
+		logrus.Error("HTTPリクエストの送信に失敗:", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "HTTPリクエストの送信に失敗しました。"})
 	}
 	defer resp.Body.Close()
@@ -315,14 +315,14 @@ func AISummary(c echo.Context) error {
 	// ステータスコードの確認
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
-		fmt.Printf("リクエストが失敗しました。ステータスコード: %d\nレスポンスボディ: %s\n", resp.StatusCode, string(bodyBytes))
+		logrus.Errorf("リクエストが失敗しました。ステータスコード: %d\nレスポンスボディ: %s\n", resp.StatusCode, string(bodyBytes))
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "リクエストが失敗しました。"})
 	}
 
 	// レスポンスボディの読み取り
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("レスポンスボディの読み取りに失敗:", err)
+		logrus.Error("レスポンスボディの読み取りに失敗:", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "レスポンスボディの読み取りに失敗しました。"})
 	}
 
@@ -330,7 +330,7 @@ func AISummary(c echo.Context) error {
 	var response GenerateContentResponse
 	err = json.Unmarshal(bodyBytes, &response)
 	if err != nil {
-		fmt.Println("レスポンスJSONのパースに失敗:", err)
+		logrus.Error("レスポンスJSONのパースに失敗:", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "レスポンスJSONのパースに失敗しました。"})
 	}
 
