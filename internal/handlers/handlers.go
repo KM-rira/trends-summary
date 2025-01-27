@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -157,4 +158,30 @@ func TiobeGraph(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, graphHTML)
+}
+
+type AISummaryResponse struct {
+	Summary string `json:"summary"`
+}
+
+func AISummary(c echo.Context) error {
+	// クエリパラメータからURLを取得
+	articleURL := c.QueryParam("url")
+	if articleURL == "" {
+		logrus.Fatal("URLパラメータが必要です")
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "URLパラメータが必要です。"})
+	}
+
+	// URLのバリデーション
+	_, err := url.ParseRequestURI(articleURL)
+	if err != nil {
+		logrus.Fatalf("URLが無効です。: %v", err)
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "URLが無効です。"})
+	}
+
+	// ここでAIサマリーを生成する処理を実装
+	// 例として、固定のサマリーを返す
+	summary := "get url:" + articleURL
+	// JSONオブジェクトとしてサマリーを返す
+	return c.JSON(http.StatusOK, map[string]string{"summary": summary})
 }

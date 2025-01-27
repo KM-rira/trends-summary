@@ -54,12 +54,36 @@ fetch('/rss')
             // ボタンセル（新規追加）
             const buttonCell = document.createElement('td');
             const button = document.createElement('button');
-            button.textContent = 'ボタン'; // ボタンに表示するテキスト
+            button.textContent = 'AIサマリー'; // ボタンに表示するテキスト
             button.classList.add('rss-button'); // スタイルクラスを追加（オプション）
-            button.addEventListener('click', () => {
-                // ボタンがクリックされたときの処理
-                console.log('ボタンがクリックされました。');
-            });
+
+            // ボタンクリック時のイベントリスナーを追加
+button.addEventListener('click', () => {
+    // 親行（<tr>）を取得
+    const parentRow = button.parentElement.parentElement;
+
+    // リンクセル（4番目の<td>）を取得
+    const linkTd = parentRow.children[3];
+    const articleUrl = linkTd.querySelector('a').href;
+
+    // /ai-summary API に GET リクエストを送信
+    fetch(`/ai-summary?url=${encodeURIComponent(articleUrl)}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`APIエラー: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(summaryData => {
+            // サマリーを表示する処理（例: アラートで表示）
+            alert(`AIサマリー:\n${summaryData.summary}`);
+        })
+        .catch(error => {
+            console.error('AIサマリー取得エラー:', error);
+            alert('AIサマリーの取得に失敗しました。');
+        });
+});
+
             buttonCell.appendChild(button);
             row.appendChild(buttonCell);
 
