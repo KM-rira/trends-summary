@@ -1,11 +1,15 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/chromedp/chromedp"
 	"github.com/labstack/echo/v4"
 	"github.com/mmcdole/gofeed"
 	"github.com/sirupsen/logrus"
@@ -116,4 +120,32 @@ func GitHubTrendingHandler(c echo.Context) error {
 
 	// JSONで返却
 	return c.JSON(http.StatusOK, trendingRepos)
+}
+
+func TiobeGraph(c echo.Context) error {
+	// コンテキストの作成
+	ctx, cancel := chromedp.NewContext(context.Background())
+	defer cancel()
+
+	// タイムアウト付きのコンテキスト
+	ctx, cancel = context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	// ターゲットURL
+	url := "https://www.tiobe.com/tiobe-index/"
+
+	// グラフデータを格納する変数
+	var graphHTML string
+
+	// chromedpタスクの実行
+	err := chromedp.Run(ctx,
+		chromedp.Navigate(url),                                      // ページに移動
+		chromedp.WaitVisible(`#container`, chromedp.ByID),           // グラフの要素が表示されるまで待機
+		chromedp.OuterHTML(`#container`, &graphHTML, chromedp.ByID), // グラフHTMLを取得
+	)
+	if err != nil {
+		log.Fatalf("Error while scraping: %v", err)
+	}
+
+	return c.JSON(http.StatusOK, graphHTML)
 }

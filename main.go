@@ -36,6 +36,7 @@ func main() {
 	e.GET("/rss", handlers.Index) // JSONレスポンスを返すエンドポイント
 	// GitHubトレンド用のエンドポイント
 	e.GET("/github-trending", handlers.GitHubTrendingHandler)
+	e.GET("/tiobe-graph", handlers.TiobeGraph)
 
 	// サーバーの起動
 	e.Logger.Fatal(e.Start(":9998"))

@@ -89,6 +89,13 @@
             <!-- JSONデータがここに挿入されます -->
         </pre>
     </div>
+    <!-- TIOBEグラフ表示セクション -->
+    <div class="container">
+        <h1>TIOBE Index Graph</h1>
+        <div id="tiobe-graph-container">
+            <!-- グラフHTMLがここに挿入されます -->
+        </div>
+    </div>
 
     <script>
 // RSSフィードのJSONデータを取得
@@ -207,6 +214,23 @@ fetch('/rss')
             const rawOutput = document.getElementById('github-trending-raw');
             rawOutput.textContent = 'エラー: データの取得に失敗しました。';
         });
+        // TIOBEグラフの取得と表示
+        fetch('/tiobe-graph')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTPエラー: ${response.status}`);
+                }
+                return response.json(); // JSONとして受け取る
+            })
+            .then(data => {
+                const container = document.getElementById('tiobe-graph-container');
+                container.innerHTML = data; // HTMLとして挿入
+            })
+            .catch(error => {
+                console.error('Fetch Error:', error);
+                const container = document.getElementById('tiobe-graph-container');
+                container.innerHTML = '<p>グラフの取得に失敗しました。</p>';
+            });
     </script>
 </body>
 </html>
