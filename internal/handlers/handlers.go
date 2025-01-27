@@ -3,7 +3,6 @@ package handlers
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -127,8 +126,12 @@ func TiobeGraph(c echo.Context) error {
 	ctx, cancel := chromedp.NewContext(context.Background())
 	defer cancel()
 
+	// コンテキスト作成
+	ctx, cancel = chromedp.NewContext(ctx, chromedp.WithDebugf(logrus.Printf))
+	defer cancel()
+
 	// タイムアウト付きのコンテキスト
-	ctx, cancel = context.WithTimeout(ctx, 30*time.Second)
+	ctx, cancel = context.WithTimeout(ctx, 60*time.Second) // タイムアウトを60秒に延長
 	defer cancel()
 
 	// ターゲットURL
@@ -137,14 +140,20 @@ func TiobeGraph(c echo.Context) error {
 	// グラフデータを格納する変数
 	var graphHTML string
 
-	// chromedpタスクの実行
-	err := chromedp.Run(ctx,
-		chromedp.Navigate(url),                                      // ページに移動
-		chromedp.WaitVisible(`#container`, chromedp.ByID),           // グラフの要素が表示されるまで待機
-		chromedp.OuterHTML(`#container`, &graphHTML, chromedp.ByID), // グラフHTMLを取得
-	)
+	// タスクを順番に実行
+	err := chromedp.Run(ctx, chromedp.Navigate(url))
 	if err != nil {
-		log.Fatalf("Error while scraping: %v", err)
+		logrus.Fatalf("Navigation error: %v", err)
+	}
+
+	err = chromedp.Run(ctx, chromedp.WaitVisible(`#container`, chromedp.ByID))
+	if err != nil {
+		logrus.Fatalf("Element visibility error: %v", err)
+	}
+
+	err = chromedp.Run(ctx, chromedp.OuterHTML(`#container`, &graphHTML, chromedp.ByID))
+	if err != nil {
+		logrus.Fatalf("OuterHTML extraction error: %v", err)
 	}
 
 	return c.JSON(http.StatusOK, graphHTML)
