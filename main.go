@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http"
 	"os"
 	"trends-summary/internal/handlers"
 
@@ -9,6 +10,9 @@ import (
 )
 
 func main() {
+	fs := http.FileServer(http.Dir("./static"))
+	http.Handle("/static/", http.StripPrefix("/static/", fs))
+
 	logFile, err := os.OpenFile("app.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		logrus.Fatalf("ログファイルを開けませんでした: %s", err)
