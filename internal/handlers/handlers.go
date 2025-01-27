@@ -1,10 +1,15 @@
 package handlers
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -164,7 +169,55 @@ type AISummaryResponse struct {
 	Summary string `json:"summary"`
 }
 
+// ContentPart represents a part of the content.
+type ContentPart struct {
+	Text string `json:"text"`
+}
+
+// Content represents the content structure.
+type Content struct {
+	Parts []ContentPart `json:"parts"`
+}
+
+// GenerateContentRequest represents the API request structure.
+type GenerateContentRequest struct {
+	Contents []Content `json:"contents"`
+}
+
+// GenerateContentResponse represents the API response structure.
+type GenerateContentResponse struct {
+	Candidates []struct {
+		Content struct {
+			Parts []struct {
+				Text string `json:"text"`
+			} `json:"parts"`
+			Role string `json:"role"`
+		} `json:"content"`
+		FinishReason     string `json:"finishReason"`
+		CitationMetadata struct {
+			CitationSources []struct {
+				StartIndex int    `json:"startIndex"`
+				EndIndex   int    `json:"endIndex"`
+				URI        string `json:"uri"`
+			} `json:"citationSources"`
+		} `json:"citationMetadata"`
+		AvgLogprobs float64 `json:"avgLogprobs"`
+	} `json:"candidates"`
+	UsageMetadata struct {
+		PromptTokenCount     int `json:"promptTokenCount"`
+		CandidatesTokenCount int `json:"candidatesTokenCount"`
+		TotalTokenCount      int `json:"totalTokenCount"`
+	} `json:"usageMetadata"`
+	ModelVersion string `json:"modelVersion"`
+}
+
 func AISummary(c echo.Context) error {
+	// 環境変数からAPIキーを取得
+	apiKey := os.Getenv("GEMINI_API_KEY")
+	if apiKey == "" {
+		logrus.Fatal("APIキーが設定されていません。環境変数 GEMINI_API_KEY を設定してください。")
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "APIキーが設定されていません。環境変数 GEMINI_API_KEY を設定してください。"})
+	}
 	// クエリパラメータからURLを取得
 	articleURL := c.QueryParam("url")
 	if articleURL == "" {
@@ -179,9 +232,124 @@ func AISummary(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "URLが無効です。"})
 	}
 
-	// ここでAIサマリーを生成する処理を実装
-	// 例として、固定のサマリーを返す
-	summary := "get url:" + articleURL
+	// HTTP GETリクエストを送信
+	resp, err := http.Get(articleURL)
+	if err != nil {
+		log.Fatalf("エラー: URLへのリクエストに失敗しました: %v", err)
+	}
+	// プログラム終了時にレスポンスボディを閉じる
+	defer resp.Body.Close()
+
+	// ステータスコードが200（OK）か確認
+	if resp.StatusCode != http.StatusOK {
+		log.Fatalf("エラー: リクエストが失敗しました。ステータスコード: %d", resp.StatusCode)
+	}
+
+	// goqueryでHTMLを解析
+	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	if err != nil {
+		log.Fatalf("エラー: HTMLの解析に失敗しました: %v", err)
+	}
+
+	// <div class="article__data">要素を取得
+	aritcleData := ""
+	doc.Find("div.article__data").Each(func(index int, item *goquery.Selection) {
+		// 選択した要素のHTMLを取得
+		html, err := item.Html()
+		if err != nil {
+			log.Printf("エラー: 要素のHTML取得に失敗しました: %v", err)
+			return
+		}
+		// 取得したHTMLを表示
+		aritcleData = fmt.Sprintf("=== div.article__data #%d ===\n%s\n\n", index+1, html)
+	})
+
+	// リクエストURLの構築
+	aiURL := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=%s", apiKey)
+
+	requestText := "下記の記事の内容を簡潔に日本語で要約してください。その際に、結果から記載してください。\n" + aritcleData
+
+	// リクエストボディの作成
+	requestBody := GenerateContentRequest{
+		Contents: []Content{
+			{
+				Parts: []ContentPart{
+					{
+						Text: requestText,
+					},
+				},
+			},
+		},
+	}
+
+	// JSONエンコード
+	jsonData, err := json.Marshal(requestBody)
+	if err != nil {
+		fmt.Println("リクエストボディのJSONエンコードに失敗:", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "リクエストボディのJSONエンコードに失敗しました。"})
+	}
+
+	// HTTP POSTリクエストの作成
+	req, err := http.NewRequest("POST", aiURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		fmt.Println("HTTPリクエストの作成に失敗:", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "HTTPリクエストの作成に失敗しました。"})
+	}
+
+	// ヘッダーの設定
+	req.Header.Set("Content-Type", "application/json")
+
+	// HTTPクライアントの作成（タイムアウト設定）
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	// リクエストの送信
+	resp, err = client.Do(req)
+	if err != nil {
+		fmt.Println("HTTPリクエストの送信に失敗:", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "HTTPリクエストの送信に失敗しました。"})
+	}
+	defer resp.Body.Close()
+
+	// ステータスコードの確認
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		fmt.Printf("リクエストが失敗しました。ステータスコード: %d\nレスポンスボディ: %s\n", resp.StatusCode, string(bodyBytes))
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "リクエストが失敗しました。"})
+	}
+
+	// レスポンスボディの読み取り
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("レスポンスボディの読み取りに失敗:", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "レスポンスボディの読み取りに失敗しました。"})
+	}
+
+	// レスポンスJSONのパース
+	var response GenerateContentResponse
+	err = json.Unmarshal(bodyBytes, &response)
+	if err != nil {
+		fmt.Println("レスポンスJSONのパースに失敗:", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "レスポンスJSONのパースに失敗しました。"})
+	}
+
+	// 結果の表示
+	summary := ""
+	if len(response.Candidates) > 0 {
+		candidate := response.Candidates[0]
+		if len(candidate.Content.Parts) > 0 {
+			logrus.Infof("生成されたコンテンツ: %s", candidate.Content.Parts[0].Text)
+			summary = candidate.Content.Parts[0].Text
+		} else {
+			logrus.Fatal("コンテンツのパーツがありません。")
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "コンテンツのパーツがありません。"})
+		}
+	} else {
+		logrus.Fatal("生成されたコンテンツがありません。")
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "生成されたコンテンツがありません。"})
+	}
+
 	// JSONオブジェクトとしてサマリーを返す
 	return c.JSON(http.StatusOK, map[string]string{"summary": summary})
 }
