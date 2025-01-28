@@ -333,6 +333,7 @@ func AISummary(c echo.Context) error {
 		logrus.Error("レスポンスJSONのパースに失敗:", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "レスポンスJSONのパースに失敗しました。"})
 	}
+	logrus.Infof("AI response: %v", response)
 
 	// 結果の表示
 	summary := ""
