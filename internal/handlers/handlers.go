@@ -133,7 +133,7 @@ func TiobeGraph(c echo.Context) error {
 	defer cancel()
 
 	// コンテキスト作成
-	ctx, cancel = chromedp.NewContext(ctx, chromedp.WithDebugf(logrus.Printf))
+	ctx, cancel = chromedp.NewContext(ctx)
 	defer cancel()
 
 	// タイムアウト付きのコンテキスト
@@ -162,6 +162,7 @@ func TiobeGraph(c echo.Context) error {
 		logrus.Fatalf("OuterHTML extraction error: %v", err)
 	}
 
+	logrus.Info("TIOBEグラフの取得に成功しました") // デバッグ用ログ
 	return c.JSON(http.StatusOK, graphHTML)
 }
 
