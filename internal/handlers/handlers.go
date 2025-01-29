@@ -412,7 +412,7 @@ func AIRepositorySummary(c echo.Context) error {
 	// リクエストURLの構築
 	aiURL := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=%s", apiKey)
 
-	requestText := "下記の記事の内容を簡潔に日本語で要約してください。その際に、結果から記載してください。\n" + articleData
+	requestText := "下記はGithubリポジトリのREADMEの内容です。簡潔に日本語で要約してください。その際に、結果から記載してください。\n" + articleData
 
 	// リクエストボディの作成
 	requestBody := GenerateContentRequest{
