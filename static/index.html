@@ -1,11 +1,13 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>トレンド表示</title>
-    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/static/css/styles.css" />
 </head>
+
 <body>
     <!-- RSSフィードセクション -->
     <div class="container">
@@ -47,12 +49,12 @@
     </div>
 
     <!-- 全データ出力セクション -->
-    <div class="container">
-        <h2>全データの出力</h2>
-        <pre id="github-trending-raw">
-            <!-- JSONデータがここに挿入されます -->
-        </pre>
-    </div>
+    <!-- <div class="container"> -->
+    <!--     <h2>全データの出力</h2> -->
+    <!--     <pre id="github-trending-raw"> -->
+    <!-- JSONデータがここに挿入されます -->
+    <!--     </pre> -->
+    <!-- </div> -->
     <!-- TIOBEグラフ表示セクション -->
     <div class="container">
         <h1>TIOBE Index Graph</h1>
@@ -60,17 +62,21 @@
             <!-- グラフHTMLがここに挿入されます -->
         </div>
     </div>
-<!-- モーダルのHTML -->
+    <!-- モーダルのHTML -->
     <div id="summary-modal" class="modal">
         <div class="modal-content">
             <span class="close-button">&times;</span>
             <h2>AIサマリー</h2>
             <p id="summary-text">ここにサマリーが表示されます。</p>
-            <div id="loading-indicator" style="display: none;">サマリーを取得中...</div>
+            <div id="loading-indicator" style="display: none">
+                サマリーを取得中...
+            </div>
         </div>
     </div>
 
     <!-- JavaScriptのスクリプト -->
-    <script src="/static/js/script.js"></script> <!-- 外部スクリプトの場合 -->
+    <script src="/static/js/script.js"></script>
+    <!-- 外部スクリプトの場合 -->
 </body>
+
 </html>

@@ -1,43 +1,52 @@
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            margin: 0;
-            padding: 0;
-            background-color: #f9f9f9;
-        }
-        .container {
-            max-width: 800px;
-            margin: 20px auto;
-            padding: 20px;
-            background: #fff;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-        h1, h2 {
-            text-align: center;
-            color: #333;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-        th, td {
-            padding: 10px;
-            border: 1px solid #ddd;
-            text-align: left;
-        }
-        th {
-            background-color: #f4f4f4;
-        }
-        pre {
-            background-color: #f9f9f9;
-            padding: 10px;
-            border: 1px solid #ddd;
-            overflow-x: auto;
-        }
+body {
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    background-color: #f9f9f9;
+}
+
+.container {
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+    background: #fff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+h1,
+h2 {
+    text-align: center;
+    color: #333;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+th,
+td {
+    padding: 10px;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+th {
+    background-color: #f4f4f4;
+}
+
+pre {
+    background-color: #f9f9f9;
+    padding: 10px;
+    border: 1px solid #ddd;
+    overflow-x: auto;
+}
+
 .rss-button {
     padding: 5px 10px;
-    background-color: #007BFF;
+    background-color: #007bff;
     color: white;
     border: none;
     border-radius: 3px;
@@ -47,42 +56,53 @@
 .rss-button:hover {
     background-color: #0056b3;
 }
+
 /* モーダルのスタイル */
 .modal {
-  display: none; /* デフォルトでは非表示 */
-  position: fixed; /* 固定位置 */
-  z-index: 1000; /* 他の要素より前面に表示 */
-  left: 0;
-  top: 0;
-  width: 100%; /* 幅100% */
-  height: 100%; /* 高さ100% */
-  overflow: auto; /* コンテンツが多い場合にスクロール */
-  background-color: rgba(0, 0, 0, 0.5); /* 半透明の背景 */
+    display: none;
+    /* デフォルトでは非表示 */
+    position: fixed;
+    /* 固定位置 */
+    z-index: 1000;
+    /* 他の要素より前面に表示 */
+    left: 0;
+    top: 0;
+    width: 100%;
+    /* 幅100% */
+    height: 100%;
+    /* 高さ100% */
+    overflow: auto;
+    /* コンテンツが多い場合にスクロール */
+    background-color: rgba(0, 0, 0, 0.5);
+    /* 半透明の背景 */
 }
 
 /* モーダルコンテンツのスタイル */
 .modal-content {
-  background-color: #fefefe;
-  margin: 10% auto; /* 上下のマージンを10%、左右は自動で中央寄せ */
-  padding: 20px;
-  border: 1px solid #888;
-  width: 80%; /* 幅80% */
-  max-width: 600px; /* 最大幅600px */
-  border-radius: 8px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    background-color: #fefefe;
+    margin: 10% auto;
+    /* 上下のマージンを10%、左右は自動で中央寄せ */
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    /* 幅80% */
+    max-width: 600px;
+    /* 最大幅600px */
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
 
 /* 閉じるボタンのスタイル */
 .close-button {
-  color: #aaa;
-  float: right;
-  font-size: 28px;
-  font-weight: bold;
-  cursor: pointer;
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
 }
 
 .close-button:hover,
 .close-button:focus {
-  color: black;
-  text-decoration: none;
+    color: black;
+    text-decoration: none;
 }
