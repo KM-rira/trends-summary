@@ -1,72 +1,74 @@
 <!doctype html>
 <html lang="ja">
-  <head>
+
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>トレンド表示</title>
     <link rel="stylesheet" href="/static/css/styles.css" />
-  </head>
+</head>
 
-  <body>
+<body>
     <!-- RSSフィードセクション -->
     <div class="container">
-      <h1>RSSフィード記事</h1>
-      <table id="rss-feed-table">
-        <thead>
-          <tr>
-            <th>タイトル</th>
-            <th>説明</th>
-            <th>公開日</th>
-            <th>リンク</th>
-            <th>AI</th>
-          </tr>
-        </thead>
-        <tbody id="rss-feed-body">
-          <!-- データがここに挿入されます -->
-        </tbody>
-      </table>
+        <h1>RSSフィード記事</h1>
+        <table id="rss-feed-table">
+            <thead>
+                <tr>
+                    <th>タイトル</th>
+                    <th>説明</th>
+                    <th>公開日</th>
+                    <th>リンク</th>
+                    <th>AI</th>
+                </tr>
+            </thead>
+            <tbody id="rss-feed-body">
+                <!-- データがここに挿入されます -->
+            </tbody>
+        </table>
     </div>
 
     <!-- GitHubトレンド一覧セクション -->
     <div class="container">
-      <h1>GitHubデイリートレンド</h1>
-      <table id="github-trending-table">
-        <thead>
-          <tr>
-            <th>リポジトリ名</th>
-            <th>説明</th>
-            <th>言語</th>
-            <th>スター数</th>
-            <th>リンク</th>
-            <th>AI</th>
-          </tr>
-        </thead>
-        <tbody id="github-trending-body">
-          <!-- データがここに挿入されます -->
-        </tbody>
-      </table>
+        <h1>GitHubデイリートレンド</h1>
+        <table id="github-trending-table">
+            <thead>
+                <tr>
+                    <th>リポジトリ名</th>
+                    <th>説明</th>
+                    <th>言語</th>
+                    <th>スター数</th>
+                    <th>リンク</th>
+                    <th>AI</th>
+                </tr>
+            </thead>
+            <tbody id="github-trending-body">
+                <!-- データがここに挿入されます -->
+            </tbody>
+        </table>
     </div>
     <!-- TIOBEグラフ表示セクション -->
     <div class="container">
-      <h1>TIOBE Index Graph</h1>
-      <div id="tiobe-graph-container">
-        <!-- グラフHTMLがここに挿入されます -->
-      </div>
+        <h1>TIOBE Index Graph</h1>
+        <div id="tiobe-graph-container">
+            <!-- グラフHTMLがここに挿入されます -->
+        </div>
     </div>
     <!-- モーダルのHTML -->
     <div id="summary-modal" class="modal">
-      <div class="modal-content">
-        <span class="close-button">&times;</span>
-        <h2>AIサマリー</h2>
-        <p id="summary-text">ここにサマリーが表示されます。</p>
-        <div id="loading-indicator" style="display: none">
-          サマリーを取得中...
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>AIサマリー</h2>
+            <p id="summary-text">ここにサマリーが表示されます。</p>
+            <div id="loading-indicator" style="display: none">
+                サマリーを取得中...
+            </div>
         </div>
-      </div>
     </div>
 
     <!-- JavaScriptのスクリプト -->
     <script src="/static/js/script.js"></script>
     <!-- 外部スクリプトの場合 -->
-  </body>
+</body>
+
 </html>
