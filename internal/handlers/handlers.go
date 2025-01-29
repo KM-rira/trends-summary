@@ -269,6 +269,7 @@ func AIArticleSummary(c echo.Context) error {
 	aiURL := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=%s", apiKey)
 
 	requestText := "下記の記事の内容を簡潔に日本語で要約してください。その際に、結果から記載してください。\n" + aritcleData
+	logrus.Info("requestText length: ", len(requestText))
 
 	// リクエストボディの作成
 	requestBody := GenerateContentRequest{
@@ -414,6 +415,7 @@ func AIRepositorySummary(c echo.Context) error {
 	aiURL := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=%s", apiKey)
 
 	requestText := "下記はGithubリポジトリのREADMEの内容です。簡潔に日本語で要約してください。その際に、結果から記載してください。\n" + articleData
+	logrus.Info("requestText length: ", len(requestText))
 
 	// リクエストボディの作成
 	requestBody := GenerateContentRequest{
@@ -500,7 +502,7 @@ func AIRepositorySummary(c echo.Context) error {
 	// JSONオブジェクトとしてサマリーを返す
 	return c.JSON(http.StatusOK, map[string]string{"summary": summary})
 }
-func AIAllSummary(c echo.Context) error {
+func AITrendsSummary(c echo.Context) error {
 	// 環境変数からAPIキーを取得
 	apiKey := os.Getenv("GEMINI_API_KEY")
 	if apiKey == "" {
@@ -508,55 +510,18 @@ func AIAllSummary(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "APIキーが設定されていません。環境変数 GEMINI_API_KEY を設定してください。"})
 	}
 	// クエリパラメータからURLを取得
-	articleURL := c.QueryParam("url")
-	if articleURL == "" {
-		logrus.Fatal("URLパラメータが必要です")
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "URLパラメータが必要です。"})
+	pageData := c.QueryParam("data")
+	logrus.Info("pageData length: ", len(pageData))
+	if pageData == "" {
+		logrus.Fatal("dataパラメータが必要です")
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "dataパラメータが必要です。"})
 	}
-
-	// URLのバリデーション
-	_, err := url.ParseRequestURI(articleURL)
-	if err != nil {
-		logrus.Fatalf("URLが無効です。: %v", err)
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "URLが無効です。"})
-	}
-
-	// HTTP GETリクエストを送信
-	resp, err := http.Get(articleURL)
-	if err != nil {
-		log.Fatalf("エラー: URLへのリクエストに失敗しました: %v", err)
-	}
-	// プログラム終了時にレスポンスボディを閉じる
-	defer resp.Body.Close()
-
-	// ステータスコードが200（OK）か確認
-	if resp.StatusCode != http.StatusOK {
-		log.Fatalf("エラー: リクエストが失敗しました。ステータスコード: %d", resp.StatusCode)
-	}
-
-	// goqueryでHTMLを解析
-	doc, err := goquery.NewDocumentFromReader(resp.Body)
-	if err != nil {
-		log.Fatalf("エラー: HTMLの解析に失敗しました: %v", err)
-	}
-
-	// <div class="article__data">要素を取得
-	aritcleData := ""
-	doc.Find("div.article__data").Each(func(index int, item *goquery.Selection) {
-		// 選択した要素のHTMLを取得
-		html, err := item.Html()
-		if err != nil {
-			log.Printf("エラー: 要素のHTML取得に失敗しました: %v", err)
-			return
-		}
-		// 取得したHTMLを表示
-		aritcleData = fmt.Sprintf("=== div.article__data #%d ===\n%s\n\n", index+1, html)
-	})
 
 	// リクエストURLの構築
 	aiURL := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=%s", apiKey)
 
-	requestText := "下記は最新のIT業界のNews一覧です。それぞれの内容を確認した後に最近の状況の傾向を簡潔に日本語で要約してください。その際に、結果から記載してください。\n" + aritcleData
+	requestText := "下記は最新のIT業界のNews一覧です。後述の項目に沿って要約して回答してください。・全てのデータから読み取れる傾向と推測される理由 ・InfoQから読み取れる傾向と推測される理由 ・Github daily trendsから読み取れる傾向と推測される理由 ・TIOBE Index Graphから読み取れる傾向と推測される理由\n" + pageData
+	logrus.Info("requestText length: ", len(requestText))
 
 	// リクエストボディの作成
 	requestBody := GenerateContentRequest{
@@ -594,7 +559,7 @@ func AIAllSummary(c echo.Context) error {
 	}
 
 	// リクエストの送信
-	resp, err = client.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		logrus.Error("HTTPリクエストの送信に失敗:", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "HTTPリクエストの送信に失敗しました。"})

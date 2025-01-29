@@ -106,3 +106,17 @@ pre {
     color: black;
     text-decoration: none;
 }
+
+/* AIサマリー用ボックス */
+.summary-box {
+    width: 100%;
+    max-width: 600px;
+    height: auto;
+    min-height: 50px;
+    max-height: 300px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    background-color: #f8f8f8;
+    overflow-y: auto;
+    white-space: pre-wrap;
+}

@@ -9,9 +9,18 @@
 </head>
 
 <body>
-    <!-- RSSフィードセクション -->
+    <!-- AIサマリーセクション（HTML の最上部に移動） -->
     <div class="container">
-        <h1>RSSフィード記事</h1>
+        <h1>AIによるサマリー</h1>
+        <button id="generate-summary-button">AIサマリー生成</button>
+        <div class="summary-box" id="summary-box">
+            ここにAIによるサマリーが表示されます。
+        </div>
+    </div>
+
+    <!-- InfoQセクション -->
+    <div class="container">
+        <h1>InfoQ latest news</h1>
         <table id="rss-feed-table">
             <thead>
                 <tr>
@@ -30,7 +39,7 @@
 
     <!-- GitHubトレンド一覧セクション -->
     <div class="container">
-        <h1>GitHubデイリートレンド</h1>
+        <h1>GitHub daily trends</h1>
         <table id="github-trending-table">
             <thead>
                 <tr>
@@ -47,6 +56,7 @@
             </tbody>
         </table>
     </div>
+
     <!-- TIOBEグラフ表示セクション -->
     <div class="container">
         <h1>TIOBE Index Graph</h1>
@@ -54,6 +64,7 @@
             <!-- グラフHTMLがここに挿入されます -->
         </div>
     </div>
+
     <!-- モーダルのHTML -->
     <div id="summary-modal" class="modal">
         <div class="modal-content">
@@ -68,7 +79,6 @@
 
     <!-- JavaScriptのスクリプト -->
     <script src="/static/js/script.js"></script>
-    <!-- 外部スクリプトの場合 -->
 </body>
 
 </html>

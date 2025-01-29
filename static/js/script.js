@@ -273,4 +273,35 @@ document.addEventListener("DOMContentLoaded", () => {
       const container = document.getElementById("tiobe-graph-container");
       container.innerHTML = "<p>グラフの取得に失敗しました。</p>";
     });
+
+  const summaryBox = document.getElementById("summary-box");
+  const generateButton = document.getElementById("generate-summary-button");
+
+  generateButton.addEventListener("click", function () {
+    // 現在のページのHTMLを取得（必要なら innerText に変更）
+    const pageContent = document.body.innerText.trim(); // すべてのテキスト
+    // const pageContent = document.documentElement.outerHTML; // HTML全体を取得する場合
+
+    // エンコードして GET パスパラメータとして送信
+    const apiUrl = `/ai-trends-summary?data=${encodeURIComponent(pageContent)}`;
+
+    fetch(apiUrl, {
+      method: "GET",
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`APIエラー: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then((data) => {
+        // APIのレスポンスを表示
+        summaryBox.textContent =
+          data.summary || "AIサマリーの取得に失敗しました。";
+      })
+      .catch((error) => {
+        console.error("AIサマリー取得エラー:", error);
+        summaryBox.textContent = "AIサマリーの取得に失敗しました。";
+      });
+  });
 });
