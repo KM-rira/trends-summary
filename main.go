@@ -41,7 +41,8 @@ func main() {
 	// GitHubトレンド用のエンドポイント
 	e.GET("/github-trending", handlers.GitHubTrendingHandler)
 	e.GET("/tiobe-graph", handlers.TiobeGraph)
-	e.GET("/ai-summary", handlers.AISummary)
+	e.GET("/ai-article-summary", handlers.AIArticleSummary)
+	e.GET("/ai-repository-summary", handlers.AIRepositorySummary)
 
 	// サーバーの起動
 	e.Logger.Fatal(e.Start(":9998"))

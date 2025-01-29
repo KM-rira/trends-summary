@@ -1,4 +1,3 @@
-// DOMが完全に読み込まれた後にスクリプトを実行する
 document.addEventListener('DOMContentLoaded', () => {
     // モーダル要素の取得
     const modal = document.getElementById('summary-modal');
@@ -109,8 +108,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     // モーダルを表示してローディングインジケーターを表示
                     showLoading();
 
-                    // /ai-summary API に GET リクエストを送信
-                    fetch(`/ai-summary?url=${encodeURIComponent(articleUrl)}`)
+                    // /ai-article-summary API に GET リクエストを送信
+                    fetch(`/ai-article-summary?url=${encodeURIComponent(articleUrl)}`)
                         .then(response => {
                             if (!response.ok) {
                                 throw new Error(`APIエラー: ${response.status}`);
@@ -145,90 +144,131 @@ document.addEventListener('DOMContentLoaded', () => {
             row.appendChild(errorCell);
             tbody.appendChild(row);
         });
-});
 
-// GitHubトレンドデータのJSONを取得
-fetch('/github-trending')
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTPエラー: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        const tbody = document.getElementById('github-trending-body');
+    // GitHubトレンドデータのJSONを取得
+    fetch('/github-trending')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTPエラー: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            const tbody = document.getElementById('github-trending-body');
 
-        // データをテーブルに追加
-        data.forEach(item => {
+            // データをテーブルに追加
+            data.forEach(item => {
+                const row = document.createElement('tr');
+
+                // リポジトリ名
+                const nameCell = document.createElement('td');
+                nameCell.textContent = item.name || 'No name';
+                row.appendChild(nameCell);
+
+                // 説明
+                const descriptionCell = document.createElement('td');
+                descriptionCell.textContent = item.description || 'No description';
+                row.appendChild(descriptionCell);
+
+                // 言語
+                const languageCell = document.createElement('td');
+                languageCell.textContent = item.language || 'N/A';
+                row.appendChild(languageCell);
+
+                // スター数
+                const starsCell = document.createElement('td');
+                starsCell.textContent = item.stars || '0';
+                row.appendChild(starsCell);
+
+                // リンク
+                const linkCell = document.createElement('td');
+                const link = document.createElement('a');
+                link.href = item.url;
+                link.textContent = 'リポジトリを見る';
+                link.target = '_blank';
+                linkCell.appendChild(link);
+                row.appendChild(linkCell);
+
+                // ボタンセル（新規追加）
+                const buttonCell = document.createElement('td');
+                const button = document.createElement('button');
+                button.textContent = 'AIサマリー'; // ボタンに表示するテキスト
+                button.classList.add('rss-button'); // スタイルクラスを追加（オプション）
+
+                // ボタンクリック時のイベントリスナーを追加
+                button.addEventListener('click', () => {
+                    // 親行（<tr>）を取得
+                    const parentRow = button.parentElement.parentElement;
+
+                    // リンクセル（5番目の<td>）を取得
+                    const linkTd = parentRow.children[4];
+                    const repositoryUrl = linkTd.querySelector('a').href;
+
+                    // モーダルを表示してローディングインジケーターを表示
+                    showLoading();
+
+                    // /ai-repository-summary API に GET リクエストを送信
+                    fetch(`/ai-repository-summary?url=${encodeURIComponent(repositoryUrl)}`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`APIエラー: ${response.status}`);
+                            }
+                            return response.json();
+                        })
+                        .then(summaryData => {
+                            // サマリーをモーダルで表示
+                            showModal(summaryData.summary);
+                        })
+                        .catch(error => {
+                            console.error('AIサマリー取得エラー:', error);
+                            loadingIndicator.style.display = 'none';
+                            summaryText.textContent = 'AIサマリーの取得に失敗しました。';
+                            summaryText.style.display = 'block';
+                        });
+                });
+
+                buttonCell.appendChild(button);
+                row.appendChild(buttonCell);
+
+                tbody.appendChild(row);
+            });
+
+            // JSON全データ表示用
+            const rawOutput = document.getElementById('github-trending-raw');
+            rawOutput.textContent = JSON.stringify(data, null, 2);
+        })
+        .catch(error => {
+            console.error('Fetch Error:', error);
+
+            // テーブルのエラー表示
+            const tbody = document.getElementById('github-trending-body');
             const row = document.createElement('tr');
-
-            // リポジトリ名
-            const nameCell = document.createElement('td');
-            nameCell.textContent = item.name || 'No name';
-            row.appendChild(nameCell);
-
-            // 説明
-            const descriptionCell = document.createElement('td');
-            descriptionCell.textContent = item.description || 'No description';
-            row.appendChild(descriptionCell);
-
-            // 言語
-            const languageCell = document.createElement('td');
-            languageCell.textContent = item.language || 'N/A';
-            row.appendChild(languageCell);
-
-            // スター数
-            const starsCell = document.createElement('td');
-            starsCell.textContent = item.stars || '0';
-            row.appendChild(starsCell);
-
-            // リンク
-            const linkCell = document.createElement('td');
-            const link = document.createElement('a');
-            link.href = item.url;
-            link.textContent = 'リポジトリを見る';
-            link.target = '_blank';
-            linkCell.appendChild(link);
-            row.appendChild(linkCell);
-
+            const errorCell = document.createElement('td');
+            errorCell.colSpan = 6;
+            errorCell.textContent = 'GitHubトレンドデータの取得に失敗しました。';
+            row.appendChild(errorCell);
             tbody.appendChild(row);
+
+            // JSON全データのエラー表示
+            const rawOutput = document.getElementById('github-trending-raw');
+            rawOutput.textContent = 'エラー: データの取得に失敗しました。';
+        });
+
+    // TIOBEグラフの取得と表示
+    fetch('/tiobe-graph')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTPエラー: ${response.status}`);
+            }
+            return response.json(); // JSONとして受け取る
+        })
+        .then(data => {
+            const container = document.getElementById('tiobe-graph-container');
+            container.innerHTML = data; // HTMLとして挿入
+        })
+        .catch(error => {
+            console.error('Fetch Error:', error);
+            const container = document.getElementById('tiobe-graph-container');
+            container.innerHTML = '<p>グラフの取得に失敗しました。</p>';
+        });
 });
-
-        // JSON全データ表示用
-        const rawOutput = document.getElementById('github-trending-raw');
-        rawOutput.textContent = JSON.stringify(data, null, 2);
-    })
-    .catch(error => {
-        console.error('Fetch Error:', error);
-
-        // テーブルのエラー表示
-        const tbody = document.getElementById('github-trending-body');
-        const row = document.createElement('tr');
-        const errorCell = document.createElement('td');
-        errorCell.colSpan = 5;
-        errorCell.textContent = 'GitHubトレンドデータの取得に失敗しました。';
-        row.appendChild(errorCell);
-        tbody.appendChild(row);
-
-        // JSON全データのエラー表示
-        const rawOutput = document.getElementById('github-trending-raw');
-        rawOutput.textContent = 'エラー: データの取得に失敗しました。';
-    });
-
-// TIOBEグラフの取得と表示
-fetch('/tiobe-graph')
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTPエラー: ${response.status}`);
-        }
-        return response.json(); // JSONとして受け取る
-    })
-    .then(data => {
-        const container = document.getElementById('tiobe-graph-container');
-        container.innerHTML = data; // HTMLとして挿入
-    })
-    .catch(error => {
-        console.error('Fetch Error:', error);
-        const container = document.getElementById('tiobe-graph-container');
-        container.innerHTML = '<p>グラフの取得に失敗しました。</p>';
-    });
