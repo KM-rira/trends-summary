@@ -120,3 +120,21 @@ pre {
     overflow-y: auto;
     white-space: pre-wrap;
 }
+
+/* 例: テーブルのスタイル調整 */
+#html-character-counts-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+#html-character-counts-table th,
+#html-character-counts-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+#html-character-counts-table th {
+    background-color: #f2f2f2;
+}

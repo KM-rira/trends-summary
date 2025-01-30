@@ -85,7 +85,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const linkCell = document.createElement("td");
         const link = document.createElement("a");
         link.href = item.link;
-        link.textContent = "記事を見る";
+        link.textContent = "URL";
         link.target = "_blank";
         linkCell.appendChild(link);
         row.appendChild(linkCell);
@@ -93,7 +93,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // ボタンセル（新規追加）
         const buttonCell = document.createElement("td");
         const button = document.createElement("button");
-        button.textContent = "AIサマリー"; // ボタンに表示するテキスト
+        button.textContent = "Generate"; // ボタンに表示するテキスト
         button.classList.add("rss-button"); // スタイルクラスを追加（オプション）
 
         // ボタンクリック時のイベントリスナーを追加
@@ -184,7 +184,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const linkCell = document.createElement("td");
         const link = document.createElement("a");
         link.href = item.url;
-        link.textContent = "リポジトリを見る";
+        link.textContent = "URL";
         link.target = "_blank";
         linkCell.appendChild(link);
         row.appendChild(linkCell);
@@ -192,7 +192,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // ボタンセル（新規追加）
         const buttonCell = document.createElement("td");
         const button = document.createElement("button");
-        button.textContent = "AIサマリー"; // ボタンに表示するテキスト
+        button.textContent = "Generate"; // ボタンに表示するテキスト
         button.classList.add("rss-button"); // スタイルクラスを追加（オプション）
 
         // ボタンクリック時のイベントリスナーを追加
@@ -304,4 +304,51 @@ document.addEventListener("DOMContentLoaded", () => {
         summaryBox.textContent = "AIサマリーの取得に失敗しました。";
       });
   });
+  function updateCharacterCounts() {
+    const rssFeedBody = document.getElementById("rss-feed-body");
+    const githubTrendingBody = document.getElementById("github-trending-body");
+    const tiobeGraphContainer = document.getElementById(
+      "tiobe-graph-container",
+    );
+
+    const rssFeedCount = rssFeedBody.innerHTML.length;
+    const githubTrendingCount = githubTrendingBody.innerHTML.length;
+    const tiobeGraphCount = tiobeGraphContainer.innerHTML.length;
+
+    document.getElementById("rss-feed-count").textContent = rssFeedCount;
+    document.getElementById("github-trending-count").textContent =
+      githubTrendingCount;
+    document.getElementById("tiobe-graph-count").textContent = tiobeGraphCount;
+  }
+
+  // データ挿入後に呼び出す
+  updateCharacterCounts();
+
+  // 監視対象の要素を取得
+  const rssFeedBody = document.getElementById("rss-feed-body");
+  const githubTrendingBody = document.getElementById("github-trending-body");
+  const tiobeGraphContainer = document.getElementById("tiobe-graph-container");
+
+  // MutationObserverのコールバック関数
+  const observerCallback = function (mutationsList, observer) {
+    // 変更があった場合にカウントを更新
+    updateCharacterCounts();
+  };
+
+  // オブザーバのオプション
+  const observerOptions = {
+    childList: true, // 直接の子要素の追加・削除を監視
+    subtree: true, // 全ての子孫要素を監視
+    characterData: true, // テキストノードの変更を監視
+  };
+
+  // 各要素に対してオブザーバを設定
+  const rssObserver = new MutationObserver(observerCallback);
+  rssObserver.observe(rssFeedBody, observerOptions);
+
+  const githubObserver = new MutationObserver(observerCallback);
+  githubObserver.observe(githubTrendingBody, observerOptions);
+
+  const tiobeObserver = new MutationObserver(observerCallback);
+  tiobeObserver.observe(tiobeGraphContainer, observerOptions);
 });
