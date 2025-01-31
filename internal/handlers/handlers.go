@@ -235,44 +235,10 @@ func AIRepositorySummary(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "URLパラメータが必要です。"})
 	}
 
-	// URLのバリデーション
-	_, err := url.ParseRequestURI(articleURL)
+	articleData, err := usecase.ScrapeStaticPage(c, articleURL, "article.markdown-body.entry-content.container-lg")
 	if err != nil {
-		logrus.Fatalf("URLが無効です。: %v", err)
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "URLが無効です。"})
-	}
-
-	// HTTP GETリクエストを送信
-	resp, err := http.Get(articleURL)
-	if err != nil {
-		log.Fatalf("エラー: URLへのリクエストに失敗しました: %v", err)
-	}
-	// プログラム終了時にレスポンスボディを閉じる
-	defer resp.Body.Close()
-
-	// ステータスコードが200（OK）か確認
-	if resp.StatusCode != http.StatusOK {
-		log.Fatalf("エラー: リクエストが失敗しました。ステータスコード: %d", resp.StatusCode)
-	}
-
-	// goqueryでHTMLを解析
-	doc, err := goquery.NewDocumentFromReader(resp.Body)
-	if err != nil {
-		log.Fatalf("エラー: HTMLの解析に失敗しました: %v", err)
-	}
-
-	// GitHubのREADMEを取得
-	articleData := ""
-	readmeElement := doc.Find("article.markdown-body.entry-content.container-lg")
-	if readmeElement.Length() > 0 {
-		html, err := readmeElement.Html()
-		if err != nil {
-			log.Printf("エラー: 要素のHTML取得に失敗しました: %v", err)
-		} else {
-			articleData = fmt.Sprintf("=== GitHub README ===\n%s\n\n", html)
-		}
-	} else {
-		log.Println("エラー: README要素が見つかりませんでした")
+		logrus.Fatalf("scraping error: %v", err)
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "scraping error"})
 	}
 
 	requestText := "下記はGithubリポジトリのREADMEの内容です。簡潔に日本語で要約してください。その際に、結果から記載してください。\n" + articleData

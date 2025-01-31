@@ -58,6 +58,7 @@ func RequestGemini(c echo.Context, requestText string) (string, error) {
 	for _, s := range summarys {
 		summary += s
 	}
+	logrus.Infof("get summary: %s", summary)
 
 	return summary, nil
 }
