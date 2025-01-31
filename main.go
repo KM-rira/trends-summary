@@ -44,6 +44,7 @@ func main() {
 	e.GET("/ai-article-summary", handlers.AIArticleSummary)
 	e.GET("/ai-repository-summary", handlers.AIRepositorySummary)
 	e.GET("/ai-trends-summary", handlers.AITrendsSummary)
+	e.GET("/local", handlers.LocalHTML)
 
 	// サーバーの起動
 	e.Logger.Fatal(e.Start(":9998"))

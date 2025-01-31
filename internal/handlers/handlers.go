@@ -165,13 +165,13 @@ func TiobeGraph(c echo.Context) error {
 
 func AIArticleSummary(c echo.Context) error {
 	// クエリパラメータからURLを取得
-	articleURL := c.QueryParam("url")
-	if articleURL == "" {
+	urlData := c.QueryParam("url")
+	if urlData == "" {
 		logrus.Fatal("URLパラメータが必要です")
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "URLパラメータが必要です。"})
 	}
 
-	htmlData, err := usecase.ScrapeStaticPage(c, articleURL, "div.article__data")
+	htmlData, err := usecase.ScrapeStaticPage(c, urlData, "div.article__data")
 	if err != nil {
 		logrus.Fatalf("scraping error: %v", err)
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "scraping error"})
@@ -193,19 +193,19 @@ func AIArticleSummary(c echo.Context) error {
 
 func AIRepositorySummary(c echo.Context) error {
 	// クエリパラメータからURLを取得
-	htmlData := c.QueryParam("url")
-	if htmlData == "" {
+	urlData := c.QueryParam("url")
+	if urlData == "" {
 		logrus.Fatal("URLパラメータが必要です")
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "URLパラメータが必要です。"})
 	}
 
-	articleData, err := usecase.ScrapeStaticPage(c, htmlData, "article.markdown-body.entry-content.container-lg")
+	htmlData, err := usecase.ScrapeStaticPage(c, urlData, "article.markdown-body.entry-content.container-lg")
 	if err != nil {
 		logrus.Fatalf("scraping error: %v", err)
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "scraping error"})
 	}
 
-	requestText := "下記はGithubリポジトリのREADMEの内容です。簡潔に日本語で要約してください。その際に、結果から記載してください。\n" + articleData
+	requestText := "下記はGithubリポジトリのREADMEの内容です。簡潔に日本語で要約してください。その際に、結果から記載してください。\n" + htmlData
 	logrus.Info("requestText length: ", len(requestText))
 
 	summary, err := usecase.RequestGemini(c, requestText)
@@ -226,7 +226,21 @@ func AITrendsSummary(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "dataパラメータが必要です。"})
 	}
 
-	requestText := "下記は最新のIT業界のNews一覧です。後述の項目に沿って要約して回答してください。・全てのデータから読み取れる傾向と推測される理由 ・InfoQから読み取れる傾向と推測される理由 ・Github daily trendsから読み取れる傾向と推測される理由 ・TIOBE Index Graphから読み取れる傾向と推測される理由\n" + pageData
+	// pageData を goquery.Document に変換
+	reader := strings.NewReader(pageData)
+	doc, err := goquery.NewDocumentFromReader(reader)
+	if err != nil {
+		logrus.Errorf("goquery ドキュメント作成エラー: %v", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "HTMLの解析に失敗しました"})
+	}
+	getData, err := usecase.GetTagDataFromHTML(doc, []string{"table#rss-feed-table"})
+	if err != nil {
+		log.Fatalf("エラー: HTMLの解析に失敗しました2: %v", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "HTMLの解析に失敗しました。2"})
+	}
+	logrus.Infof("get data: %s", getData)
+
+	requestText := "下記は最新のIT業界のNews一覧です。後述の項目に沿って要約して回答してください。・全てのデータから読み取れる傾向と推測される理由 ・InfoQから読み取れる傾向と推測される理由 ・Github daily trendsから読み取れる傾向と推測される理由 ・TIOBE Index Graphから読み取れる傾向と推測される理由\n" + getData
 	logrus.Info("requestText length: ", len(requestText))
 
 	summary, err := usecase.RequestGemini(c, requestText)

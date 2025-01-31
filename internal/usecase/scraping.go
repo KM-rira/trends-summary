@@ -47,6 +47,16 @@ func ScrapeStaticPage(c echo.Context, reqURL string, tags ...string) (string, er
 		return "", c.JSON(http.StatusInternalServerError, map[string]string{"error": "HTMLの解析に失敗しました。"})
 	}
 
+	getData, err := GetTagDataFromHTML(doc, tags)
+	if err != nil {
+		log.Fatalf("エラー: HTMLの解析に失敗しました2: %v", err)
+		return "", c.JSON(http.StatusInternalServerError, map[string]string{"error": "HTMLの解析に失敗しました。2"})
+	}
+	logrus.Infof("get data: %s", getData)
+	return getData, nil
+}
+
+func GetTagDataFromHTML(doc *goquery.Document, tags []string) (string, error) {
 	var builder strings.Builder
 	for i, tag := range tags {
 		builder.WriteString(fmt.Sprintf("=== %s #%d ===\n", tag, i+1))
@@ -66,7 +76,6 @@ func ScrapeStaticPage(c echo.Context, reqURL string, tags ...string) (string, er
 		builder.WriteString("\n") // タグごとの区切り
 	}
 	getData := builder.String()
-	logrus.Infof("get data: %s", getData)
 
 	return getData, nil
 }
