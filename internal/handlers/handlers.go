@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
@@ -172,49 +171,14 @@ func AIArticleSummary(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "URLパラメータが必要です。"})
 	}
 
-	// URLのバリデーション
-	_, err := url.ParseRequestURI(articleURL)
+	htmlData, err := usecase.ScrapeStaticPage(c, articleURL, "div.article__data")
 	if err != nil {
-		logrus.Fatalf("URLが無効です。: %v", err)
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "URLが無効です。"})
+		logrus.Fatalf("scraping error: %v", err)
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "scraping error"})
 	}
-
-	// HTTP GETリクエストを送信
-	resp, err := http.Get(articleURL)
-	if err != nil {
-		log.Fatalf("エラー: URLへのリクエストに失敗しました: %v", err)
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "URLが無効です。"})
-	}
-	// プログラム終了時にレスポンスボディを閉じる
-	defer resp.Body.Close()
-
-	// ステータスコードが200（OK）か確認
-	if resp.StatusCode != http.StatusOK {
-		log.Fatalf("エラー: リクエストが失敗しました。ステータスコード: %d", resp.StatusCode)
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "URLが無効です。"})
-	}
-
-	// goqueryでHTMLを解析
-	doc, err := goquery.NewDocumentFromReader(resp.Body)
-	if err != nil {
-		log.Fatalf("エラー: HTMLの解析に失敗しました: %v", err)
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "HTMLの解析に失敗しました。"})
-	}
-
-	// <div class="article__data">要素を取得
-	aritcleData := ""
-	doc.Find("div.article__data").Each(func(index int, item *goquery.Selection) {
-		// 選択した要素のHTMLを取得
-		html, err := item.Html()
-		if err != nil {
-			log.Printf("エラー: 要素のHTML取得に失敗しました: %v", err)
-		}
-		// 取得したHTMLを表示
-		aritcleData = fmt.Sprintf("=== div.article__data #%d ===\n%s\n\n", index+1, html)
-	})
 
 	// リクエストURLの構築
-	requestText := "下記の記事の内容を簡潔に日本語で要約してください。その際に、結果から記載してください。\n" + aritcleData
+	requestText := "下記の記事の内容を簡潔に日本語で要約してください。その際に、結果から記載してください。\n" + htmlData
 	logrus.Info("requestText length: ", len(requestText))
 
 	summary, err := usecase.RequestGemini(c, requestText)
@@ -229,13 +193,13 @@ func AIArticleSummary(c echo.Context) error {
 
 func AIRepositorySummary(c echo.Context) error {
 	// クエリパラメータからURLを取得
-	articleURL := c.QueryParam("url")
-	if articleURL == "" {
+	htmlData := c.QueryParam("url")
+	if htmlData == "" {
 		logrus.Fatal("URLパラメータが必要です")
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "URLパラメータが必要です。"})
 	}
 
-	articleData, err := usecase.ScrapeStaticPage(c, articleURL, "article.markdown-body.entry-content.container-lg")
+	articleData, err := usecase.ScrapeStaticPage(c, htmlData, "article.markdown-body.entry-content.container-lg")
 	if err != nil {
 		logrus.Fatalf("scraping error: %v", err)
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "scraping error"})
