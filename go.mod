@@ -6,9 +6,11 @@ require (
 	github.com/PuerkitoBio/goquery v1.10.1
 	github.com/chromedp/chromedp v0.12.1
 	github.com/google/generative-ai-go v0.19.0
+	github.com/google/go-github v17.0.0+incompatible
 	github.com/labstack/echo/v4 v4.13.3
 	github.com/mmcdole/gofeed v1.3.0
 	github.com/sirupsen/logrus v1.9.3
+	golang.org/x/oauth2 v0.25.0
 	google.golang.org/api v0.186.0
 )
 
@@ -30,6 +32,7 @@ require (
 	github.com/gobwas/ws v1.4.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
+	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/s2a-go v0.1.7 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.2 // indirect
@@ -53,7 +56,6 @@ require (
 	go.opentelemetry.io/otel/trace v1.26.0 // indirect
 	golang.org/x/crypto v0.32.0 // indirect
 	golang.org/x/net v0.34.0 // indirect
-	golang.org/x/oauth2 v0.21.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.21.0 // indirect

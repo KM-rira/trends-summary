@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -12,9 +14,11 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/chromedp/chromedp"
+	"github.com/google/go-github/github"
 	"github.com/labstack/echo/v4"
 	"github.com/mmcdole/gofeed"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/oauth2"
 )
 
 // Index はRSSフィードを取得して、HTMLまたはJSONで出力するハンドラーです。
@@ -192,6 +196,7 @@ func AIArticleSummary(c echo.Context) error {
 }
 
 func AIRepositorySummary(c echo.Context) error {
+	logrus.Info("AIRepositorySummaryハンドラーが呼び出されました") // デバッグ用ログ
 	// クエリパラメータからURLを取得
 	urlData := c.QueryParam("url")
 	if urlData == "" {
@@ -199,14 +204,73 @@ func AIRepositorySummary(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "URLパラメータが必要です。"})
 	}
 
-	htmlData, err := usecase.ScrapeStaticPage(c, urlData, "article.markdown-body.entry-content.container-lg")
+	parsedURL, err := url.Parse(urlData)
 	if err != nil {
-		logrus.Fatalf("scraping error: %v", err)
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "scraping error"})
+		logrus.Fatal("URL解析エラー:", err)
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "URL解析エラー"})
 	}
 
-	requestText := "下記はGithubリポジトリのREADMEの内容です。簡潔に日本語で要約してください。その際に、結果から記載してください。\n" + htmlData
+	parts := strings.Split(strings.Trim(parsedURL.Path, "/"), "/")
+	if len(parts) < 2 {
+		logrus.Fatal("URLが正しい形式ではありません")
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "URLが正しい形式ではありません"})
+	}
+	owner := parts[0]
+	repoName := parts[1]
+
+	// コンテキストの作成
+	ctx := context.Background()
+
+	// 環境変数から OAuth トークンを取得
+	token := os.Getenv("GITHUB_OAUTH_TOKEN")
+	if token == "" {
+		log.Fatal("環境変数 GITHUB_OAUTH_TOKEN が設定されていません")
+	}
+
+	// OAuth2 クライアントの作成
+	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
+	tc := oauth2.NewClient(ctx, ts)
+
+	// go-github クライアントの作成
+	client := github.NewClient(tc)
+
+	// 1. リポジトリ情報の取得
+	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
+	if err != nil {
+		log.Fatalf("リポジトリ情報の取得に失敗しました: %v", err)
+	}
+
+	var builder strings.Builder
+
+	fmt.Println("==== リポジトリ情報 ====")
+	builder.WriteString(fmt.Sprintf("Name: %s\n", repo.GetName()))
+	builder.WriteString(fmt.Sprintf("Description: %s\n", repo.GetDescription()))
+	if topics := repo.Topics; len(topics) > 0 {
+		fmt.Println("Topics:")
+		for _, t := range topics {
+			fmt.Printf(" - %s\n", t)
+		}
+	}
+
+	// 2. README の取得
+	readme, _, err := client.Repositories.GetReadme(ctx, owner, repoName, nil)
+	if err != nil {
+		log.Fatalf("README の取得に失敗しました: %v", err)
+	}
+
+	// READMEの内容をデコード（go-github の GetContent メソッドを使用）
+	readmeContent, err := readme.GetContent()
+	if err != nil {
+		log.Fatalf("README のデコードに失敗しました: %v", err)
+	}
+
+	builder.WriteString(fmt.Sprintf("==== README 内容 ==== %s", readmeContent))
+
+	repoData := builder.String()
+
+	requestText := "下記はGithubリポジトリのREADMEの内容です。簡潔に日本語で要約してください。その際に、結果から記載してください。\n" + repoData
 	logrus.Info("requestText length: ", len(requestText))
+	logrus.Info("requestText content: ", requestText)
 
 	summary, err := usecase.RequestGemini(c, requestText)
 	if err != nil {
