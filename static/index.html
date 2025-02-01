@@ -1,107 +1,109 @@
 <!doctype html>
 <html lang="ja">
-  <head>
+
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>trends</title>
     <link rel="stylesheet" href="/static/css/styles.css" />
-  </head>
+</head>
 
-  <body>
+<body>
     <!-- AIサマリーセクション（HTML の最上部に移動） -->
     <div class="container">
-      <h1>This page summary</h1>
-      <div class="summary-box" id="summary-box">NO DATA</div>
-      <button id="generate-summary-button">request</button>
+        <h1>This page summary</h1>
+        <div class="summary-box" id="summary-box">NO DATA</div>
+        <button id="generate-summary-button">request</button>
     </div>
 
     <!-- InfoQセクション -->
     <div class="container">
-      <h1>InfoQ latest news</h1>
-      <table id="rss-feed-table">
-        <thead>
-          <tr>
-            <th>title</th>
-            <th>description</th>
-            <th>publication date</th>
-            <th>link</th>
-            <th>AI</th>
-          </tr>
-        </thead>
-        <tbody id="rss-feed-body">
-          <!-- データがここに挿入されます -->
-        </tbody>
-      </table>
+        <h1>InfoQ latest news</h1>
+        <table id="rss-feed-table">
+            <thead>
+                <tr>
+                    <th>title</th>
+                    <th>description</th>
+                    <th>publication date</th>
+                    <th>link</th>
+                    <th>AI</th>
+                </tr>
+            </thead>
+            <tbody id="rss-feed-body">
+                <!-- データがここに挿入されます -->
+            </tbody>
+        </table>
     </div>
 
     <!-- GitHubトレンド一覧セクション -->
     <div class="container">
-      <h1>GitHub daily trends</h1>
-      <table id="github-trending-table">
-        <thead>
-          <tr>
-            <th>name</th>
-            <th>description</th>
-            <th>language</th>
-            <th>stars</th>
-            <th>link</th>
-            <th>AI</th>
-          </tr>
-        </thead>
-        <tbody id="github-trending-body">
-          <!-- データがここに挿入されます -->
-        </tbody>
-      </table>
+        <h1>GitHub daily trends</h1>
+        <table id="github-trending-table">
+            <thead>
+                <tr>
+                    <th>name</th>
+                    <th>description</th>
+                    <th>language</th>
+                    <th>stars</th>
+                    <th>link</th>
+                    <th>AI</th>
+                </tr>
+            </thead>
+            <tbody id="github-trending-body">
+                <!-- データがここに挿入されます -->
+            </tbody>
+        </table>
     </div>
 
     <!-- TIOBEグラフ表示セクション -->
     <div class="container">
-      <h1>TIOBE Index Graph</h1>
-      <div id="tiobe-graph-container">
-        <!-- グラフHTMLがここに挿入されます -->
-      </div>
+        <h1>TIOBE Index Graph</h1>
+        <div id="tiobe-graph-container">
+            <!-- グラフHTMLがここに挿入されます -->
+        </div>
     </div>
 
     <!-- HTML文字数カウントセクション -->
     <div class="container">
-      <h1>HTML words count</h1>
-      <table id="html-character-counts-table">
-        <thead>
-          <tr>
-            <th>section</th>
-            <th>words count</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>InfoQ latest news</td>
-            <td id="rss-feed-count">0</td>
-          </tr>
-          <tr>
-            <td>GitHub daily trends</td>
-            <td id="github-trending-count">0</td>
-          </tr>
-          <tr>
-            <td>TIOBE index graph</td>
-            <td id="tiobe-graph-count">0</td>
-          </tr>
-        </tbody>
-      </table>
+        <h1>HTML words count</h1>
+        <table id="html-character-counts-table">
+            <thead>
+                <tr>
+                    <th>section</th>
+                    <th>words count</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>InfoQ latest news</td>
+                    <td id="rss-feed-count">0</td>
+                </tr>
+                <tr>
+                    <td>GitHub daily trends</td>
+                    <td id="github-trending-count">0</td>
+                </tr>
+                <tr>
+                    <td>TIOBE index graph</td>
+                    <td id="tiobe-graph-count">0</td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 
     <!-- モーダルのHTML -->
     <div id="summary-modal" class="modal">
-      <div class="modal-content">
-        <span class="close-button">&times;</span>
-        <h2>AIサマリー</h2>
-        <p id="summary-text">ここにサマリーが表示されます。</p>
-        <div id="loading-indicator" style="display: none">
-          サマリーを取得中...
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>AIサマリー</h2>
+            <p id="summary-text">AI summary box</p>
+            <div id="loading-indicator" style="display: none">processing...</div>
         </div>
-      </div>
     </div>
 
-    <!-- JavaScriptのスクリプト -->
+    <!-- Markdown 変換ライブラリ -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- カスタムスクリプト -->
     <script src="/static/js/script.js"></script>
-  </body>
+</body>
+
 </html>
