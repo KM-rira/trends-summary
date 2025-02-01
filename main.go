@@ -43,7 +43,7 @@ func main() {
 	e.GET("/tiobe-graph", handlers.TiobeGraph)
 	e.GET("/ai-article-summary", handlers.AIArticleSummary)
 	e.GET("/ai-repository-summary", handlers.AIRepositorySummary)
-	e.GET("/ai-trends-summary", handlers.AITrendsSummary)
+	e.POST("/ai-trends-summary", handlers.AITrendsSummary)
 
 	// サーバーの起動
 	e.Logger.Fatal(e.Start(":9998"))

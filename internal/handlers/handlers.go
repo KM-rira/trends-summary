@@ -281,9 +281,22 @@ func AIRepositorySummary(c echo.Context) error {
 	// JSONオブジェクトとしてサマリーを返す
 	return c.JSON(http.StatusOK, map[string]string{"summary": summary})
 }
+
+// リクエストボディの構造体を定義
+type RequestData struct {
+	Data string `json:"data"`
+}
+
 func AITrendsSummary(c echo.Context) error {
-	// クエリパラメータからURLを取得
-	pageData := c.QueryParam("data")
+	logrus.Info("AITrendsSummaryハンドラーが呼び出されました") // デバッグ用ログ
+	// JSONボディを構造体にバインドする
+	var reqData RequestData
+	if err := c.Bind(&reqData); err != nil {
+		// バインドに失敗した場合、400エラーを返す
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "リクエストデータが無効です"})
+	}
+	pageData := reqData.Data
+
 	logrus.Info("pageData length: ", len(pageData))
 	if pageData == "" {
 		logrus.Fatal("dataパラメータが必要です")
@@ -297,15 +310,23 @@ func AITrendsSummary(c echo.Context) error {
 		logrus.Errorf("goquery ドキュメント作成エラー: %v", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "HTMLの解析に失敗しました"})
 	}
-	getData, err := usecase.GetTagDataFromHTML(doc, []string{"table#rss-feed-table"})
+	getData, err := usecase.GetTagDataFromHTML2(doc, []string{"#rss-feed-table tr"})
 	if err != nil {
 		log.Fatalf("エラー: HTMLの解析に失敗しました2: %v", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "HTMLの解析に失敗しました。2"})
 	}
 	logrus.Infof("get data: %s", getData)
 
+	// "a.txt" に 内容を書き込む
+	err = os.WriteFile("html.txt", []byte(pageData), 0644)
+	if err != nil {
+		logrus.Fatalf("ファイル書き込みエラー: %v", err)
+	}
+	return c.JSON(http.StatusOK, map[string]string{"summary": ""})
+
 	requestText := "下記は最新のIT業界のNews一覧です。後述の項目に沿って要約してMarkdown形式で回答してください。・全てのデータから読み取れる傾向と推測される理由 ・InfoQから読み取れる傾向と推測される理由 ・Github daily trendsから読み取れる傾向と推測される理由 ・TIOBE Index Graphから読み取れる傾向と推測される理由\n" + getData
 	logrus.Info("requestText length: ", len(requestText))
+	logrus.Info("requestText content: ", requestText)
 
 	summary, err := usecase.RequestGemini(c, requestText)
 	if err != nil {

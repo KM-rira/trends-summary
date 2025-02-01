@@ -278,13 +278,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const generateButton = document.getElementById("generate-summary-button");
 
   generateButton.addEventListener("click", function () {
-    // 現在のページのテキスト（必要に応じて innerText などに変更）
-    const pageContent = document.body.innerText.trim();
-    // エンコードして GET パスパラメータとして送信
-    const apiUrl = `/ai-trends-summary?data=${encodeURIComponent(pageContent)}`;
+    // 現在のページのHTMLを取得
+    const pageContent = document.body.innerHTML.trim();
 
-    fetch(apiUrl, {
-      method: "GET",
+    fetch(`/ai-trends-summary`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ data: pageContent }),
     })
       .then((response) => {
         if (!response.ok) {
@@ -293,11 +295,8 @@ document.addEventListener("DOMContentLoaded", () => {
         return response.json();
       })
       .then((data) => {
-        // APIのレスポンスが markdown 形式のテキストと仮定
         const markdownText = data.summary || "AIサマリーの取得に失敗しました。";
-        // marked.js を使って Markdown を HTML に変換
         const htmlContent = marked.parse(markdownText);
-        // HTML を summaryBox に反映
         summaryBox.innerHTML = htmlContent;
       })
       .catch((error) => {

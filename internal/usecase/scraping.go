@@ -79,3 +79,24 @@ func GetTagDataFromHTML(doc *goquery.Document, tags []string) (string, error) {
 
 	return getData, nil
 }
+func GetTagDataFromHTML2(doc *goquery.Document, tags []string) (string, error) {
+	var builder strings.Builder
+	for i, tag := range tags {
+		builder.WriteString(fmt.Sprintf("=== %s #%d ===\n", tag, i+1))
+
+		// 指定されたタグの要素を検索
+		doc.Find(tag).Each(func(index int, item *goquery.Selection) {
+			// 各行の列データを取得
+			item.Find("td").Each(func(j int, cell *goquery.Selection) {
+				text := cell.Text()
+				builder.WriteString(fmt.Sprintf("Cell %d: %s\n", j+1, strings.TrimSpace(text)))
+			})
+			builder.WriteString("\n") // 各行ごとの区切り
+		})
+
+		builder.WriteString("\n") // タグごとの区切り
+	}
+
+	getData := builder.String()
+	return getData, nil
+}
