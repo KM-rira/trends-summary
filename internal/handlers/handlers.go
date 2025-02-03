@@ -26,7 +26,7 @@ func Index(c echo.Context) error {
 	logrus.Info("Indexハンドラーが呼び出されました") // デバッグ用ログ
 
 	// RSSフィードURL
-	rssURL := "https://feed.infoq.com/"
+	rssURL := "https://feed.infoq.com/jp"
 	logrus.WithField("rssURL", rssURL).Info("RSSフィードURL") // デバッグ用ログ
 
 	// パーサーの作成
