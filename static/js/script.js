@@ -350,5 +350,48 @@ document.addEventListener("DOMContentLoaded", () => {
   githubObserver.observe(githubTrendingBody, observerOptions);
 
   const tiobeObserver = new MutationObserver(observerCallback);
-  tiobeObserver.observe(tiobeGraphContainer, observerOptions);
+  const container = document.getElementById("golangweekly-container");
+
+  fetch("/golang-weekly-content")
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`Network error: ${response.status}`);
+      }
+      return response.text();
+    })
+    .then((xmlText) => {
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlText, "application/xml");
+
+      const items = xmlDoc.querySelectorAll("item");
+      if (items.length === 0) {
+        container.textContent = "No articles found.";
+        return;
+      }
+
+      const list = document.createElement("ul");
+      items.forEach((item) => {
+        const title = item.querySelector("title")?.textContent || "No Title";
+        const link = item.querySelector("link")?.textContent || "#";
+        const pubDate = item.querySelector("pubDate")?.textContent || "No Date";
+        const description =
+          item.querySelector("description")?.textContent || "No Description";
+
+        const listItem = document.createElement("li");
+        listItem.innerHTML = `
+                    <h3><a href="${link}" target="_blank">${title}</a></h3>
+                    <p><strong>Published:</strong> ${pubDate}</p>
+                    <p>${description}</p>
+                    <hr>
+                `;
+        list.appendChild(listItem);
+      });
+
+      container.innerHTML = ""; // 既存の内容をクリア
+      container.appendChild(list);
+    })
+    .catch((error) => {
+      console.error("Error fetching GolangWeekly feed:", error);
+      container.textContent = "Error loading feed";
+    });
 });

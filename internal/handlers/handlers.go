@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -175,7 +176,8 @@ func AIArticleSummary(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "URLパラメータが必要です。"})
 	}
 
-	htmlData, err := usecase.ScrapeStaticPage(c, urlData, "div.article__data")
+	tags := []string{"#article-content"}
+	htmlData, err := usecase.ScrapeStaticPage(c, urlData, tags)
 	if err != nil {
 		logrus.Fatalf("scraping error: %v", err)
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "scraping error"})
@@ -310,7 +312,7 @@ func AITrendsSummary(c echo.Context) error {
 		logrus.Errorf("goquery ドキュメント作成エラー: %v", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "HTMLの解析に失敗しました"})
 	}
-	getData, err := usecase.GetTagDataFromHTML(doc, []string{"#rss-feed-table tr", "#github-trending-table tr"})
+	getData, err := usecase.GetTagDataFromHTML(doc, []string{"#rss-feed-table tr", "#github-trending-table tr", "#golangweekly-container"})
 	if err != nil {
 		log.Fatalf("エラー: HTMLの解析に失敗しました2: %v", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "HTMLの解析に失敗しました。2"})
@@ -323,10 +325,37 @@ func AITrendsSummary(c echo.Context) error {
 
 	summary, err := usecase.RequestGemini(c, requestText)
 	if err != nil {
-		log.Fatalf("エラー: Gemini APIリクエストに失敗しました: %v", err)
+		logrus.Fatalf("エラー: Gemini APIリクエストに失敗しました: %v", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Gemini APIリクエストに失敗しました。"})
 	}
 
 	// JSONオブジェクトとしてサマリーを返す
 	return c.JSON(http.StatusOK, map[string]string{"summary": summary})
+}
+
+func GolangWeeklyContent(c echo.Context) error {
+	logrus.Info("GolangWeeklyContentハンドラーが呼び出されました") // デバッグ用ログ
+
+	resp, err := http.Get("https://golangweekly.com/rss/")
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to fetch feed"})
+	}
+	defer resp.Body.Close()
+
+	// Echo の Response を取得
+	res := c.Response()
+
+	// 取得した RSS のレスポンスヘッダーをそのまま転送
+	for k, values := range resp.Header {
+		for _, v := range values {
+			res.Header().Add(k, v)
+		}
+	}
+	res.WriteHeader(resp.StatusCode)
+
+	// Body の内容を転送
+	if _, err := io.Copy(res, resp.Body); err != nil {
+		return err
+	}
+	return nil
 }

@@ -12,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func ScrapeStaticPage(c echo.Context, reqURL string, tags ...string) (string, error) {
+func ScrapeStaticPage(c echo.Context, reqURL string, tags []string) (string, error) {
 	if reqURL == "" {
 		logrus.Fatal("URLパラメータが必要です")
 		return "", c.JSON(http.StatusBadRequest, map[string]string{"error": "URLパラメータが必要です。"})

@@ -43,6 +43,7 @@ func main() {
 	e.GET("/tiobe-graph", handlers.TiobeGraph)
 	e.GET("/ai-article-summary", handlers.AIArticleSummary)
 	e.GET("/ai-repository-summary", handlers.AIRepositorySummary)
+	e.GET("/golang-weekly-content", handlers.GolangWeeklyContent)
 	e.POST("/ai-trends-summary", handlers.AITrendsSummary)
 
 	// サーバーの起動
