@@ -40,10 +40,13 @@ func main() {
 	e.GET("/rss", handlers.Index) // JSONレスポンスを返すエンドポイント
 	// GitHubトレンド用のエンドポイント
 	e.GET("/github-trending", handlers.GitHubTrendingHandler)
+	e.GET("/golang-repository-trending", handlers.GolangRepsitoryTrendingHandler)
 	e.GET("/tiobe-graph", handlers.TiobeGraph)
 	e.GET("/ai-article-summary", handlers.AIArticleSummary)
 	e.GET("/ai-repository-summary", handlers.AIRepositorySummary)
 	e.GET("/golang-weekly-content", handlers.GolangWeeklyContent)
+	e.GET("/google-cloud-content", handlers.GoogleCloudContent)
+	e.GET("/aws-content", handlers.AWSContent)
 	e.POST("/ai-trends-summary", handlers.AITrendsSummary)
 
 	// サーバーの起動

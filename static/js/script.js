@@ -256,6 +256,117 @@ document.addEventListener("DOMContentLoaded", () => {
       // rawOutput.textContent = 'エラー: データの取得に失敗しました。';
     });
 
+  // Golang RepositotyトレンドデータのJSONを取得
+  fetch("/golang-repository-trending")
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`HTTPエラー: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then((data) => {
+      const tbody = document.getElementById("golang-repository-trending-body");
+
+      // データをテーブルに追加
+      data.forEach((item) => {
+        const row = document.createElement("tr");
+
+        // リポジトリ名
+        const nameCell = document.createElement("td");
+        nameCell.textContent = item.name || "No name";
+        row.appendChild(nameCell);
+
+        // 説明
+        const descriptionCell = document.createElement("td");
+        descriptionCell.textContent = item.description || "No description";
+        row.appendChild(descriptionCell);
+
+        // 言語
+        const languageCell = document.createElement("td");
+        languageCell.textContent = item.language || "N/A";
+        row.appendChild(languageCell);
+
+        // スター数
+        const starsCell = document.createElement("td");
+        starsCell.textContent = item.stars || "0";
+        row.appendChild(starsCell);
+
+        // リンク
+        const linkCell = document.createElement("td");
+        const link = document.createElement("a");
+        link.href = item.url;
+        link.textContent = "URL";
+        link.target = "_blank";
+        linkCell.appendChild(link);
+        row.appendChild(linkCell);
+
+        // ボタンセル（新規追加）
+        const buttonCell = document.createElement("td");
+        const button = document.createElement("button");
+        button.textContent = "Generate"; // ボタンに表示するテキスト
+        button.classList.add("rss-button"); // スタイルクラスを追加（オプション）
+
+        // ボタンクリック時のイベントリスナーを追加
+        button.addEventListener("click", () => {
+          // 親行（<tr>）を取得
+          const parentRow = button.parentElement.parentElement;
+
+          // リンクセル（5番目の<td>）を取得
+          const linkTd = parentRow.children[4];
+          const repositoryUrl = linkTd.querySelector("a").href;
+
+          // モーダルを表示してローディングインジケーターを表示
+          showLoading();
+
+          // /ai-repository-summary API に GET リクエストを送信
+          fetch(
+            `/ai-repository-summary?url=${encodeURIComponent(repositoryUrl)}`,
+          )
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error(`APIエラー: ${response.status}`);
+              }
+              return response.json();
+            })
+            .then((summaryData) => {
+              // サマリーをモーダルで表示
+              showModal(summaryData.summary);
+            })
+            .catch((error) => {
+              console.error("AIサマリー取得エラー:", error);
+              loadingIndicator.style.display = "none";
+              summaryText.textContent = "AIサマリーの取得に失敗しました。";
+              summaryText.style.display = "block";
+            });
+        });
+
+        buttonCell.appendChild(button);
+        row.appendChild(buttonCell);
+
+        tbody.appendChild(row);
+      });
+
+      // JSON全データ表示用
+      // const rawOutput = document.getElementById('github-trending-raw');
+      // rawOutput.textContent = JSON.stringify(data, null, 2);
+    })
+    .catch((error) => {
+      console.error("Fetch Error:", error);
+
+      // テーブルのエラー表示
+      const tbody = document.getElementById("golang-repository-trending-body");
+      const row = document.createElement("tr");
+      const errorCell = document.createElement("td");
+      errorCell.colSpan = 6;
+      errorCell.textContent = "GitHubトレンドデータの取得に失敗しました。";
+      row.appendChild(errorCell);
+      tbody.appendChild(row);
+
+      // JSON全データのエラー表示
+      // const rawOutput = document.getElementById('github-trending-raw');
+      // rawOutput.textContent = 'エラー: データの取得に失敗しました。';
+    });
+
   // TIOBEグラフの取得と表示
   fetch("/tiobe-graph")
     .then((response) => {
@@ -393,5 +504,100 @@ document.addEventListener("DOMContentLoaded", () => {
     .catch((error) => {
       console.error("Error fetching GolangWeekly feed:", error);
       container.textContent = "Error loading feed";
+    });
+
+  const gcpContainer = document.getElementById("gcp-rss-container");
+
+  fetch("/google-cloud-content")
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`Network error: ${response.status}`);
+      }
+      return response.text();
+    })
+    .then((xmlText) => {
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlText, "application/xml");
+
+      const items = xmlDoc.querySelectorAll("item");
+      if (items.length === 0) {
+        gcpContainer.textContent = "No articles found.";
+        return;
+      }
+
+      const list = document.createElement("ul");
+      items.forEach((item) => {
+        const title = item.querySelector("title")?.textContent || "No Title";
+        const link = item.querySelector("link")?.textContent || "#";
+        const pubDate = item.querySelector("pubDate")?.textContent || "No Date";
+        const description =
+          item.querySelector("description")?.textContent || "No Description";
+
+        const listItem = document.createElement("li");
+        listItem.innerHTML = `
+                    <h3><a href="${link}" target="_blank">${title}</a></h3>
+                    <p><strong>Published:</strong> ${pubDate}</p>
+                    <p>${description}</p>
+                    <hr>
+                `;
+        list.appendChild(listItem);
+      });
+
+      gcpContainer.innerHTML = ""; // 既存の内容をクリア
+      gcpContainer.appendChild(list);
+    })
+    .catch((error) => {
+      console.error("Error fetching GCP feed:", error);
+      gcpContainer.textContent = "Error loading feed";
+    });
+
+  const awsContainer = document.getElementById("aws-rss-container");
+
+  fetch("/aws-content")
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`Network error: ${response.status}`);
+      }
+      return response.text();
+    })
+    .then((xmlText) => {
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlText, "application/xml");
+      const items = xmlDoc.querySelectorAll("item");
+
+      if (items.length === 0) {
+        awsContainer.textContent = "No articles found.";
+        return;
+      }
+
+      const list = document.createElement("ul");
+      items.forEach((item) => {
+        // 各要素の存在チェックを行いながらテキストを抽出
+        const titleElem = item.querySelector("title");
+        const linkElem = item.querySelector("link");
+        const pubDateElem = item.querySelector("pubDate");
+        const descElem = item.querySelector("description");
+
+        const title = titleElem ? titleElem.textContent : "No Title";
+        const link = linkElem ? linkElem.textContent : "#";
+        const pubDate = pubDateElem ? pubDateElem.textContent : "No Date";
+        const description = descElem ? descElem.textContent : "No Description";
+
+        const listItem = document.createElement("li");
+        listItem.innerHTML = `
+        <h3><a href="${link}" target="_blank">${title}</a></h3>
+        <p><strong>Published:</strong> ${pubDate}</p>
+        <p>${description}</p>
+        <hr>
+      `;
+        list.appendChild(listItem);
+      });
+
+      awsContainer.innerHTML = ""; // 既存の内容をクリア
+      awsContainer.appendChild(list);
+    })
+    .catch((error) => {
+      console.error("Error fetching AWS feed:", error);
+      awsContainer.textContent = "Error loading feed";
     });
 });

@@ -27,7 +27,7 @@ func Index(c echo.Context) error {
 	logrus.Info("Indexハンドラーが呼び出されました") // デバッグ用ログ
 
 	// RSSフィードURL
-	rssURL := "https://feed.infoq.com/jp"
+	rssURL := "https://feed.infoq.com"
 	logrus.WithField("rssURL", rssURL).Info("RSSフィードURL") // デバッグ用ログ
 
 	// パーサーの作成
@@ -129,6 +129,65 @@ func GitHubTrendingHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, trendingRepos)
 }
 
+// GolangRepsitoryTrendingHandler fetches trending repositories from GitHub
+func GolangRepsitoryTrendingHandler(c echo.Context) error {
+	logrus.Info("GolangRepsitoryTrendingHandlerが呼び出されました") // デバッグ用ログ
+
+	var trendingRepos []map[string]string
+
+	// GitHub Trendingページをスクレイピング
+	res, err := http.Get("https://github.com/trending/go")
+	if err != nil {
+		logrus.WithError(err).Error("GitHub Trendingページの取得に失敗しました") // エラーログ
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to fetch GitHub Trending"})
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		logrus.WithField("statusCode", res.StatusCode).Error("GitHub Trendingページのステータスコードエラー") // エラーログ
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "GitHub Trending page returned non-200 status"})
+	}
+
+	// HTMLドキュメントをパース
+	doc, err := goquery.NewDocumentFromReader(res.Body)
+	if err != nil {
+		logrus.WithError(err).Error("GitHub Trendingページのパースに失敗しました") // エラーログ
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to parse GitHub Trending page"})
+	}
+
+	// トレンドリポジトリを抽出
+	doc.Find("article.Box-row").Each(func(i int, s *goquery.Selection) {
+		// リポジトリ名とURL
+		repoAnchor := s.Find("h2.h3 a")
+		repoName := strings.TrimSpace(repoAnchor.Text())
+		repoName = strings.ReplaceAll(repoName, "\n", " / ") // 改行を " / " に置換
+		repoURL, _ := repoAnchor.Attr("href")
+
+		// 説明
+		repoDescription := strings.TrimSpace(s.Find("p").Text())
+
+		// 言語
+		repoLanguage := strings.TrimSpace(s.Find("[itemprop='programmingLanguage']").Text())
+
+		// スター数
+		repoStars := strings.TrimSpace(s.Find("a.Link--muted").First().Text())
+
+		// リポジトリ情報を配列に追加
+		trendingRepos = append(trendingRepos, map[string]string{
+			"name":        repoName,
+			"url":         "https://github.com" + strings.TrimSpace(repoURL),
+			"description": repoDescription,
+			"language":    repoLanguage,
+			"stars":       repoStars,
+		})
+	})
+
+	logrus.WithField("repositoriesCount", len(trendingRepos)).Info("GitHubトレンドの取得に成功しました") // デバッグ用ログ
+
+	// JSONで返却
+	return c.JSON(http.StatusOK, trendingRepos)
+}
+
 func TiobeGraph(c echo.Context) error {
 	// コンテキストの作成
 	ctx, cancel := chromedp.NewContext(context.Background())
@@ -176,7 +235,7 @@ func AIArticleSummary(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "URLパラメータが必要です。"})
 	}
 
-	tags := []string{"#article-content"}
+	tags := []string{".article__content"}
 	htmlData, err := usecase.ScrapeStaticPage(c, urlData, tags)
 	if err != nil {
 		logrus.Fatalf("scraping error: %v", err)
@@ -319,7 +378,7 @@ func AITrendsSummary(c echo.Context) error {
 	}
 	logrus.Infof("get data: %s", getData)
 
-	requestText := "下記は最新のIT業界のNews一覧です。後述の項目に沿って要約してMarkdown形式で回答してください。・全てのデータから読み取れる傾向と推測される理由 ・InfoQから読み取れる傾向と推測される理由 ・Github daily trendsから読み取れる傾向と推測される理由 から読み取れる傾向と推測される理由\n" + getData
+	requestText := "下記は最新のIT業界のNews一覧です。後述の項目に沿って要約してMarkdown形式で回答してください。・全てのデータから読み取れる傾向と推測される理由 ・InfoQから読み取れる傾向と推測される理由 ・Github daily trendsから読み取れる傾向と推測される理由・golangWeeklyから読み取れる傾向と推測される理由\n" + getData
 	logrus.Info("requestText length: ", len(requestText))
 	logrus.Info("requestText content: ", requestText)
 
@@ -358,4 +417,56 @@ func GolangWeeklyContent(c echo.Context) error {
 		return err
 	}
 	return nil
+}
+
+func GoogleCloudContent(c echo.Context) error {
+	logrus.Info("GoogleCloudContentハンドラーが呼び出されました") // デバッグ用ログ
+
+	resp, err := http.Get("https://cloudblog.withgoogle.com/products/gcp/rss/")
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to fetch feed"})
+	}
+	defer resp.Body.Close()
+
+	// Echo の Response を取得
+	res := c.Response()
+
+	// 取得した RSS のレスポンスヘッダーをそのまま転送
+	for k, values := range resp.Header {
+		for _, v := range values {
+			res.Header().Add(k, v)
+		}
+	}
+	res.WriteHeader(resp.StatusCode)
+
+	// Body の内容を転送
+	if _, err := io.Copy(res, resp.Body); err != nil {
+		return err
+	}
+	return nil
+}
+func AWSContent(c echo.Context) error {
+	logrus.Info("AWSContentハンドラーが呼び出されました") // デバッグ用ログ
+
+	// AWSのRSSフィードを取得
+	resp, err := http.Get("https://aws.amazon.com/blogs/aws/feed/")
+	if err != nil {
+		log.Printf("Error fetching AWS feed: %v", err)
+		return c.String(http.StatusInternalServerError, "Error fetching AWS feed")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return c.String(http.StatusInternalServerError, "Error fetching AWS feed: "+resp.Status)
+	}
+
+	// レスポンスボディを読み込み
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "Error reading feed")
+	}
+
+	// XMLとして返す（Content-Typeをapplication/xmlに設定）
+	c.Response().Header().Set(echo.HeaderContentType, echo.MIMEApplicationXML)
+	return c.String(http.StatusOK, string(body))
 }
