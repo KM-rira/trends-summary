@@ -470,3 +470,28 @@ func AWSContent(c echo.Context) error {
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMEApplicationXML)
 	return c.String(http.StatusOK, string(body))
 }
+func AzureContent(c echo.Context) error {
+	logrus.Info("AzureContentハンドラーが呼び出されました") // デバッグ用ログ
+
+	// AzureRSSフィードを取得
+	resp, err := http.Get("https://azure.microsoft.com/ja-jp/blog/feed/")
+	if err != nil {
+		log.Printf("Error fetching Azure feed: %v", err)
+		return c.String(http.StatusInternalServerError, "Error fetching Azure feed")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return c.String(http.StatusInternalServerError, "Error fetching Azure feed: "+resp.Status)
+	}
+
+	// レスポンスボディを読み込み
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "Error reading feed")
+	}
+
+	// XMLとして返す（Content-Typeをapplication/xmlに設定）
+	c.Response().Header().Set(echo.HeaderContentType, echo.MIMEApplicationXML)
+	return c.String(http.StatusOK, string(body))
+}

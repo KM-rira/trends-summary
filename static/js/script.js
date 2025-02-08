@@ -600,4 +600,53 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Error fetching AWS feed:", error);
       awsContainer.textContent = "Error loading feed";
     });
+  const azureContainer = document.getElementById("azure-rss-container");
+
+  fetch("/azure-content")
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`Network error: ${response.status}`);
+      }
+      return response.text();
+    })
+    .then((xmlText) => {
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlText, "application/xml");
+      const items = xmlDoc.querySelectorAll("item");
+
+      if (items.length === 0) {
+        azureContainer.textContent = "No articles found.";
+        return;
+      }
+
+      const list = document.createElement("ul");
+      items.forEach((item) => {
+        // 各要素の存在チェックを行いながらテキストを抽出
+        const titleElem = item.querySelector("title");
+        const linkElem = item.querySelector("link");
+        const pubDateElem = item.querySelector("pubDate");
+        const descElem = item.querySelector("description");
+
+        const title = titleElem ? titleElem.textContent : "No Title";
+        const link = linkElem ? linkElem.textContent : "#";
+        const pubDate = pubDateElem ? pubDateElem.textContent : "No Date";
+        const description = descElem ? descElem.textContent : "No Description";
+
+        const listItem = document.createElement("li");
+        listItem.innerHTML = `
+        <h3><a href="${link}" target="_blank">${title}</a></h3>
+        <p><strong>Published:</strong> ${pubDate}</p>
+        <p>${description}</p>
+        <hr>
+      `;
+        list.appendChild(listItem);
+      });
+
+      azureContainer.innerHTML = ""; // 既存の内容をクリア
+      azureContainer.appendChild(list);
+    })
+    .catch((error) => {
+      console.error("Error fetching AZURE feed:", error);
+      azureContainer.textContent = "Error loading feed";
+    });
 });

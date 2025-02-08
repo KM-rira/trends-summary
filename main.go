@@ -47,6 +47,7 @@ func main() {
 	e.GET("/golang-weekly-content", handlers.GolangWeeklyContent)
 	e.GET("/google-cloud-content", handlers.GoogleCloudContent)
 	e.GET("/aws-content", handlers.AWSContent)
+	e.GET("/azure-content", handlers.AzureContent)
 	e.POST("/ai-trends-summary", handlers.AITrendsSummary)
 
 	// サーバーの起動
