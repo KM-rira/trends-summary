@@ -33,7 +33,11 @@ func RequestGemini(c echo.Context, requestText string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	client, err := genai.NewClient(ctx, option.WithAPIKey(apiKey))
+	// v1エンドポイントを明示的に指定（gemini-3-flashはv1でサポート）
+	client, err := genai.NewClient(ctx,
+		option.WithAPIKey(apiKey),
+		option.WithEndpoint("https://generativelanguage.googleapis.com/v1"),
+	)
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
 			"function":  "RequestGemini",
