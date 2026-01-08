@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/labstack/echo/v4"
@@ -13,46 +14,93 @@ import (
 )
 
 func ScrapeStaticPage(c echo.Context, reqURL string, tags []string) (string, error) {
+	logrus.WithFields(logrus.Fields{
+		"function": "ScrapeStaticPage",
+		"url":      reqURL,
+		"tags":     tags,
+	}).Info("スクレイピング開始")
+
 	if reqURL == "" {
-		logrus.Fatal("URLパラメータが必要です")
-		return "", c.JSON(http.StatusBadRequest, map[string]string{"error": "URLパラメータが必要です。"})
+		logrus.WithFields(logrus.Fields{
+			"function":  "ScrapeStaticPage",
+			"errorType": "パラメータバリデーションエラー",
+		}).Error("URLパラメータが必要です")
+		return "", fmt.Errorf("URLパラメータが必要です")
 	}
 
 	// URLのバリデーション
 	_, err := url.ParseRequestURI(reqURL)
 	if err != nil {
-		logrus.Fatalf("URLが無効です。: %v", err)
-		return "", c.JSON(http.StatusBadRequest, map[string]string{"error": "URLが無効です。"})
+		logrus.WithFields(logrus.Fields{
+			"function":  "ScrapeStaticPage",
+			"url":       reqURL,
+			"error":     err.Error(),
+			"errorType": "URLバリデーションエラー",
+		}).Error("URLが無効です")
+		return "", fmt.Errorf("URLが無効です: %w", err)
+	}
+
+	// タイムアウト付きHTTPクライアントを作成
+	client := &http.Client{
+		Timeout: 10 * time.Second,
 	}
 
 	// HTTP GETリクエストを送信
-	resp, err := http.Get(reqURL)
+	resp, err := client.Get(reqURL)
 	if err != nil {
-		log.Fatalf("エラー: URLへのリクエストに失敗しました: %v", err)
-		return "", c.JSON(http.StatusBadRequest, map[string]string{"error": "URLが無効です。"})
+		logrus.WithFields(logrus.Fields{
+			"function":  "ScrapeStaticPage",
+			"url":       reqURL,
+			"error":     err.Error(),
+			"errorType": "HTTPリクエストエラー",
+		}).Error("URLへのリクエストに失敗しました")
+		return "", fmt.Errorf("URLへのリクエストに失敗しました: %w", err)
 	}
 	// プログラム終了時にレスポンスボディを閉じる
 	defer resp.Body.Close()
 
 	// ステータスコードが200（OK）か確認
 	if resp.StatusCode != http.StatusOK {
-		log.Fatalf("エラー: リクエストが失敗しました。ステータスコード: %d", resp.StatusCode)
-		return "", c.JSON(http.StatusBadRequest, map[string]string{"error": "URLが無効です。"})
+		logrus.WithFields(logrus.Fields{
+			"function":   "ScrapeStaticPage",
+			"url":        reqURL,
+			"statusCode": resp.StatusCode,
+			"status":     resp.Status,
+			"errorType":  "HTTPステータスコードエラー",
+		}).Error("リクエストが失敗しました")
+		return "", fmt.Errorf("リクエストが失敗しました。ステータスコード: %d", resp.StatusCode)
 	}
 
 	// goqueryでHTMLを解析
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
-		log.Fatalf("エラー: HTMLの解析に失敗しました: %v", err)
-		return "", c.JSON(http.StatusInternalServerError, map[string]string{"error": "HTMLの解析に失敗しました。"})
+		logrus.WithFields(logrus.Fields{
+			"function":  "ScrapeStaticPage",
+			"url":       reqURL,
+			"error":     err.Error(),
+			"errorType": "HTMLパースエラー",
+		}).Error("HTMLの解析に失敗しました")
+		return "", fmt.Errorf("HTMLの解析に失敗しました: %w", err)
 	}
 
 	getData, err := GetTagDataFromHTML(doc, tags)
 	if err != nil {
-		log.Fatalf("エラー: HTMLの解析に失敗しました2: %v", err)
-		return "", c.JSON(http.StatusInternalServerError, map[string]string{"error": "HTMLの解析に失敗しました。2"})
+		logrus.WithFields(logrus.Fields{
+			"function":  "ScrapeStaticPage",
+			"url":       reqURL,
+			"tags":      tags,
+			"error":     err.Error(),
+			"errorType": "タグ抽出エラー",
+		}).Error("HTMLタグの抽出に失敗しました")
+		return "", fmt.Errorf("HTMLの解析に失敗しました: %w", err)
 	}
-	logrus.Infof("get data: %s", getData)
+
+	logrus.WithFields(logrus.Fields{
+		"function": "ScrapeStaticPage",
+		"url":      reqURL,
+		"dataLen":  len(getData),
+	}).Info("スクレイピング成功")
+
 	return getData, nil
 }
 

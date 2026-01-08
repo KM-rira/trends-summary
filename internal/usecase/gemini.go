@@ -2,9 +2,9 @@ package usecase
 
 import (
 	"context"
-	"log"
-	"net/http"
+	"fmt"
 	"os"
+	"time"
 
 	"github.com/google/generative-ai-go/genai"
 	"github.com/labstack/echo/v4"
@@ -13,29 +13,54 @@ import (
 )
 
 func RequestGemini(c echo.Context, requestText string) (string, error) {
+	logrus.WithFields(logrus.Fields{
+		"function":       "RequestGemini",
+		"requestTextLen": len(requestText),
+	}).Info("Gemini APIリクエスト開始")
+
 	// 環境変数からAPIキーを取得
 	apiKey := os.Getenv("GEMINI_API_KEY")
 	if apiKey == "" {
 		errmsg := "APIキーが設定されていません。環境変数 GEMINI_API_KEY を設定してください。"
-		logrus.Fatal(errmsg)
-		return "", c.JSON(http.StatusInternalServerError, map[string]string{"error": errmsg})
+		logrus.WithFields(logrus.Fields{
+			"function":  "RequestGemini",
+			"errorType": "環境変数エラー",
+		}).Error(errmsg)
+		return "", fmt.Errorf("%s", errmsg)
 	}
 
-	ctx := context.Background()
+	// タイムアウト付きコンテキスト
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
 	client, err := genai.NewClient(ctx, option.WithAPIKey(apiKey))
 	if err != nil {
-		log.Fatal(err)
+		logrus.WithFields(logrus.Fields{
+			"function":  "RequestGemini",
+			"error":     err.Error(),
+			"errorType": "Geminiクライアント作成エラー",
+		}).Error("Geminiクライアントの作成に失敗しました")
+		return "", fmt.Errorf("Geminiクライアントの作成に失敗しました: %w", err)
 	}
 	defer client.Close()
 
-	model := client.GenerativeModel("gemini-1.5-flash")
+	modelName := "gemini-1.5-flash"
+	logrus.WithFields(logrus.Fields{
+		"function":  "RequestGemini",
+		"modelName": modelName,
+	}).Info("Gemini APIリクエスト送信")
+
+	model := client.GenerativeModel(modelName)
 	response, err := model.GenerateContent(ctx, genai.Text(requestText))
 	if err != nil {
-		log.Fatal(err)
-		return "", c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		logrus.WithFields(logrus.Fields{
+			"function":  "RequestGemini",
+			"modelName": modelName,
+			"error":     err.Error(),
+			"errorType": "Gemini API通信エラー",
+		}).Error("Gemini APIリクエストに失敗しました")
+		return "", fmt.Errorf("Gemini APIリクエストに失敗しました: %w", err)
 	}
-
-	logrus.Infof("AI response: %v", response)
 
 	// 結果の表示
 	summarys := []string{}
@@ -58,7 +83,12 @@ func RequestGemini(c echo.Context, requestText string) (string, error) {
 	for _, s := range summarys {
 		summary += s
 	}
-	logrus.Infof("get summary: %s", summary)
+
+	logrus.WithFields(logrus.Fields{
+		"function":   "RequestGemini",
+		"summaryLen": len(summary),
+		"partsCount": len(summarys),
+	}).Info("Gemini API要約生成成功")
 
 	return summary, nil
 }
