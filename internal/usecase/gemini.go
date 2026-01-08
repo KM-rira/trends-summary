@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"time"
 
@@ -14,35 +13,6 @@ import (
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
 )
-
-// loggingTransport は HTTPリクエストをログ出力するためのトランスポート
-type loggingTransport struct {
-	wrapped http.RoundTripper
-}
-
-func (t *loggingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	// リクエストURLをログ出力
-	logrus.WithFields(logrus.Fields{
-		"function": "RequestGemini",
-		"method":   req.Method,
-		"url":      req.URL.String(),
-		"host":     req.URL.Host,
-		"path":     req.URL.Path,
-	}).Info("実際のHTTPリクエスト")
-
-	// 実際のリクエストを実行
-	resp, err := t.wrapped.RoundTrip(req)
-
-	if err == nil {
-		logrus.WithFields(logrus.Fields{
-			"function":   "RequestGemini",
-			"statusCode": resp.StatusCode,
-			"status":     resp.Status,
-		}).Info("HTTPレスポンス")
-	}
-
-	return resp, err
-}
 
 func RequestGemini(c echo.Context, requestText string) (string, error) {
 	logrus.WithFields(logrus.Fields{
@@ -65,19 +35,9 @@ func RequestGemini(c echo.Context, requestText string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// HTTPトランスポートをラップしてリクエストURLをログ出力
-	httpClient := &http.Client{
-		Transport: &loggingTransport{
-			wrapped: http.DefaultTransport,
-		},
-	}
-
-	// genaiライブラリのデフォルトはv1betaなので、エンドポイント指定は不要
-	// option.WithHTTPClientでログ出力するクライアントを使用
-	client, err := genai.NewClient(ctx,
-		option.WithAPIKey(apiKey),
-		option.WithHTTPClient(httpClient),
-	)
+	// genaiライブラリのデフォルト（v1beta）を使用
+	// option.WithAPIKeyで自動的に認証ヘッダーが追加される
+	client, err := genai.NewClient(ctx, option.WithAPIKey(apiKey))
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
 			"function":  "RequestGemini",
