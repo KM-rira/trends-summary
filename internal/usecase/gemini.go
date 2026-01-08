@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/google/generative-ai-go/genai"
 	"github.com/labstack/echo/v4"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
 )
 
@@ -33,10 +35,11 @@ func RequestGemini(c echo.Context, requestText string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// v1エンドポイントを明示的に指定（gemini-3-flashはv1でサポート）
+	// v1betaエンドポイントを明示的に指定
+	// 正しいエンドポイント: https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent
 	client, err := genai.NewClient(ctx,
 		option.WithAPIKey(apiKey),
-		option.WithEndpoint("https://generativelanguage.googleapis.com/v1"),
+		option.WithEndpoint("https://generativelanguage.googleapis.com/v1beta"),
 	)
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
@@ -52,17 +55,33 @@ func RequestGemini(c echo.Context, requestText string) (string, error) {
 	logrus.WithFields(logrus.Fields{
 		"function":  "RequestGemini",
 		"modelName": modelName,
+		"endpoint":  "v1beta",
 	}).Info("Gemini APIリクエスト送信")
 
 	model := client.GenerativeModel(modelName)
 	response, err := model.GenerateContent(ctx, genai.Text(requestText))
 	if err != nil {
-		logrus.WithFields(logrus.Fields{
-			"function":  "RequestGemini",
-			"modelName": modelName,
-			"error":     err.Error(),
-			"errorType": "Gemini API通信エラー",
-		}).Error("Gemini APIリクエストに失敗しました")
+		// googleapi.Errorの詳細を抽出
+		var gerr *googleapi.Error
+		if errors.As(err, &gerr) {
+			logrus.WithFields(logrus.Fields{
+				"function":     "RequestGemini",
+				"modelName":    modelName,
+				"endpoint":     "v1beta",
+				"statusCode":   gerr.Code,
+				"errorMessage": gerr.Message,
+				"errorBody":    string(gerr.Body),
+				"errorType":    "Gemini API通信エラー",
+			}).Error("Gemini APIリクエストに失敗しました（詳細）")
+		} else {
+			logrus.WithFields(logrus.Fields{
+				"function":  "RequestGemini",
+				"modelName": modelName,
+				"endpoint":  "v1beta",
+				"error":     err.Error(),
+				"errorType": "Gemini API通信エラー",
+			}).Error("Gemini APIリクエストに失敗しました")
+		}
 		return "", fmt.Errorf("Gemini APIリクエストに失敗しました: %w", err)
 	}
 
