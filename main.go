@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	"os"
+	"time"
 	"trends-summary/internal/handlers"
 
 	"github.com/labstack/echo/v4" // バージョンを指定
@@ -13,22 +14,22 @@ func main() {
 	fs := http.FileServer(http.Dir("./static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	logFile, err := os.OpenFile("app.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		logrus.Fatalf("ログファイルを開けませんでした: %s", err)
-	}
-	defer logFile.Close()
+	// logrusの出力先を標準出力に設定（journaldが収集）
+	logrus.SetOutput(os.Stdout)
 
-	// logrusの出力先をログファイルに設定
-	logrus.SetOutput(logFile)
-
-	// ログフォーマットを設定（例: JSONフォーマット）
+	// ログフォーマットを設定（JSONフォーマット - journaldと相性が良い）
 	logrus.SetFormatter(&logrus.JSONFormatter{})
 
 	// ログレベルを設定（例: Infoレベル）
 	logrus.SetLevel(logrus.InfoLevel)
 
 	e := echo.New()
+
+	// サーバータイムアウトの設定
+	e.Server.ReadTimeout = 30 * time.Second
+	e.Server.WriteTimeout = 60 * time.Second
+	e.Server.IdleTimeout = 120 * time.Second
+
 	// 静的ファイルを提供
 	e.Static("/static", "static") // staticディレクトリ内のファイルを提供
 
@@ -51,5 +52,5 @@ func main() {
 	e.POST("/ai-trends-summary", handlers.AITrendsSummary)
 
 	// サーバーの起動
-	e.Logger.Fatal(e.Start(":9998"))
+	e.Logger.Fatal(e.Start(":80"))
 }

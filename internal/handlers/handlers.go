@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -24,11 +23,14 @@ import (
 
 // Index はRSSフィードを取得して、HTMLまたはJSONで出力するハンドラーです。
 func Index(c echo.Context) error {
-	logrus.Info("Indexハンドラーが呼び出されました") // デバッグ用ログ
+	logrus.WithFields(logrus.Fields{
+		"handler": "Index",
+		"method":  c.Request().Method,
+		"path":    c.Request().URL.Path,
+	}).Info("ハンドラー呼び出し")
 
 	// RSSフィードURL
 	rssURL := "https://feed.infoq.com"
-	logrus.WithField("rssURL", rssURL).Info("RSSフィードURL") // デバッグ用ログ
 
 	// パーサーの作成
 	fp := gofeed.NewParser()
@@ -36,13 +38,22 @@ func Index(c echo.Context) error {
 	// RSSフィードを取得して解析
 	feed, err := fp.ParseURL(rssURL)
 	if err != nil {
-		logrus.WithError(err).Error("RSSフィード取得エラー") // エラーログ
+		logrus.WithFields(logrus.Fields{
+			"handler":   "Index",
+			"rssURL":    rssURL,
+			"error":     err.Error(),
+			"errorType": "RSSフィード取得エラー",
+		}).Error("RSSフィードの取得に失敗しました")
 		return c.JSON(http.StatusInternalServerError, map[string]string{
 			"error": fmt.Sprintf("RSSフィードの取得に失敗しました: %v", err),
 		})
 	}
 
-	logrus.WithField("feedTitle", feed.Title).Info("RSSフィード取得成功") // デバッグ用ログ
+	logrus.WithFields(logrus.Fields{
+		"handler":   "Index",
+		"feedTitle": feed.Title,
+		"itemCount": len(feed.Items),
+	}).Info("RSSフィード取得成功")
 
 	// フィード情報を整形
 	feedItems := []map[string]interface{}{}
@@ -72,27 +83,54 @@ type Repository struct {
 
 // GitHubTrendingHandler fetches trending repositories from GitHub
 func GitHubTrendingHandler(c echo.Context) error {
-	logrus.Info("GitHubTrendingHandlerが呼び出されました") // デバッグ用ログ
+	targetURL := "https://github.com/trending"
+	logrus.WithFields(logrus.Fields{
+		"handler":   "GitHubTrendingHandler",
+		"method":    c.Request().Method,
+		"path":      c.Request().URL.Path,
+		"targetURL": targetURL,
+	}).Info("ハンドラー呼び出し")
 
 	var trendingRepos []map[string]string
 
+	// タイムアウト付きHTTPクライアントを作成
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
 	// GitHub Trendingページをスクレイピング
-	res, err := http.Get("https://github.com/trending")
+	res, err := client.Get(targetURL)
 	if err != nil {
-		logrus.WithError(err).Error("GitHub Trendingページの取得に失敗しました") // エラーログ
+		logrus.WithFields(logrus.Fields{
+			"handler":   "GitHubTrendingHandler",
+			"targetURL": targetURL,
+			"error":     err.Error(),
+			"errorType": "HTTPリクエストエラー",
+		}).Error("GitHub Trendingページの取得に失敗しました")
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to fetch GitHub Trending"})
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
-		logrus.WithField("statusCode", res.StatusCode).Error("GitHub Trendingページのステータスコードエラー") // エラーログ
+		logrus.WithFields(logrus.Fields{
+			"handler":    "GitHubTrendingHandler",
+			"targetURL":  targetURL,
+			"statusCode": res.StatusCode,
+			"status":     res.Status,
+			"errorType":  "HTTPステータスコードエラー",
+		}).Error("GitHub Trendingページのステータスコードエラー")
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "GitHub Trending page returned non-200 status"})
 	}
 
 	// HTMLドキュメントをパース
 	doc, err := goquery.NewDocumentFromReader(res.Body)
 	if err != nil {
-		logrus.WithError(err).Error("GitHub Trendingページのパースに失敗しました") // エラーログ
+		logrus.WithFields(logrus.Fields{
+			"handler":   "GitHubTrendingHandler",
+			"targetURL": targetURL,
+			"error":     err.Error(),
+			"errorType": "HTMLパースエラー",
+		}).Error("GitHub Trendingページのパースに失敗しました")
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to parse GitHub Trending page"})
 	}
 
@@ -123,7 +161,10 @@ func GitHubTrendingHandler(c echo.Context) error {
 		})
 	})
 
-	logrus.WithField("repositoriesCount", len(trendingRepos)).Info("GitHubトレンドの取得に成功しました") // デバッグ用ログ
+	logrus.WithFields(logrus.Fields{
+		"handler":           "GitHubTrendingHandler",
+		"repositoriesCount": len(trendingRepos),
+	}).Info("GitHubトレンドの取得に成功しました")
 
 	// JSONで返却
 	return c.JSON(http.StatusOK, trendingRepos)
@@ -131,27 +172,54 @@ func GitHubTrendingHandler(c echo.Context) error {
 
 // GolangRepsitoryTrendingHandler fetches trending repositories from GitHub
 func GolangRepsitoryTrendingHandler(c echo.Context) error {
-	logrus.Info("GolangRepsitoryTrendingHandlerが呼び出されました") // デバッグ用ログ
+	targetURL := "https://github.com/trending/go"
+	logrus.WithFields(logrus.Fields{
+		"handler":   "GolangRepsitoryTrendingHandler",
+		"method":    c.Request().Method,
+		"path":      c.Request().URL.Path,
+		"targetURL": targetURL,
+	}).Info("ハンドラー呼び出し")
 
 	var trendingRepos []map[string]string
 
+	// タイムアウト付きHTTPクライアントを作成
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
 	// GitHub Trendingページをスクレイピング
-	res, err := http.Get("https://github.com/trending/go")
+	res, err := client.Get(targetURL)
 	if err != nil {
-		logrus.WithError(err).Error("GitHub Trendingページの取得に失敗しました") // エラーログ
+		logrus.WithFields(logrus.Fields{
+			"handler":   "GolangRepsitoryTrendingHandler",
+			"targetURL": targetURL,
+			"error":     err.Error(),
+			"errorType": "HTTPリクエストエラー",
+		}).Error("GitHub Trendingページの取得に失敗しました")
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to fetch GitHub Trending"})
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
-		logrus.WithField("statusCode", res.StatusCode).Error("GitHub Trendingページのステータスコードエラー") // エラーログ
+		logrus.WithFields(logrus.Fields{
+			"handler":    "GolangRepsitoryTrendingHandler",
+			"targetURL":  targetURL,
+			"statusCode": res.StatusCode,
+			"status":     res.Status,
+			"errorType":  "HTTPステータスコードエラー",
+		}).Error("GitHub Trendingページのステータスコードエラー")
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "GitHub Trending page returned non-200 status"})
 	}
 
 	// HTMLドキュメントをパース
 	doc, err := goquery.NewDocumentFromReader(res.Body)
 	if err != nil {
-		logrus.WithError(err).Error("GitHub Trendingページのパースに失敗しました") // エラーログ
+		logrus.WithFields(logrus.Fields{
+			"handler":   "GolangRepsitoryTrendingHandler",
+			"targetURL": targetURL,
+			"error":     err.Error(),
+			"errorType": "HTMLパースエラー",
+		}).Error("GitHub Trendingページのパースに失敗しました")
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to parse GitHub Trending page"})
 	}
 
@@ -182,73 +250,139 @@ func GolangRepsitoryTrendingHandler(c echo.Context) error {
 		})
 	})
 
-	logrus.WithField("repositoriesCount", len(trendingRepos)).Info("GitHubトレンドの取得に成功しました") // デバッグ用ログ
+	logrus.WithFields(logrus.Fields{
+		"handler":           "GolangRepsitoryTrendingHandler",
+		"repositoriesCount": len(trendingRepos),
+	}).Info("Golangトレンドの取得に成功しました")
 
 	// JSONで返却
 	return c.JSON(http.StatusOK, trendingRepos)
 }
 
 func TiobeGraph(c echo.Context) error {
-	// コンテキストの作成
-	ctx, cancel := chromedp.NewContext(context.Background())
+	targetURL := "https://www.tiobe.com/tiobe-index/"
+	logrus.WithFields(logrus.Fields{
+		"handler":   "TiobeGraph",
+		"method":    c.Request().Method,
+		"path":      c.Request().URL.Path,
+		"targetURL": targetURL,
+	}).Info("ハンドラー呼び出し")
+
+	// chromedpのオプションを設定（headlessモード、Chrome/Chromiumのパス検出）
+	opts := append(chromedp.DefaultExecAllocatorOptions[:],
+		chromedp.Flag("headless", true),
+		chromedp.Flag("disable-gpu", true),
+		chromedp.Flag("no-sandbox", true),
+		chromedp.Flag("disable-dev-shm-usage", true),
+	)
+
+	// 実行可能ファイルのパスを検出（google-chrome, chromium, chromium-browserを試行）
+	allocCtx, cancel := chromedp.NewExecAllocator(context.Background(), opts...)
 	defer cancel()
 
-	// コンテキスト作成
-	ctx, cancel = chromedp.NewContext(ctx)
+	// コンテキストの作成
+	ctx, cancel := chromedp.NewContext(allocCtx)
 	defer cancel()
 
 	// タイムアウト付きのコンテキスト
 	ctx, cancel = context.WithTimeout(ctx, 60*time.Second) // タイムアウトを60秒に延長
 	defer cancel()
 
-	// ターゲットURL
-	url := "https://www.tiobe.com/tiobe-index/"
-
 	// グラフデータを格納する変数
 	var graphHTML string
 
 	// タスクを順番に実行
-	err := chromedp.Run(ctx, chromedp.Navigate(url))
+	err := chromedp.Run(ctx, chromedp.Navigate(targetURL))
 	if err != nil {
-		logrus.Fatalf("Navigation error: %v", err)
+		logrus.WithFields(logrus.Fields{
+			"handler":   "TiobeGraph",
+			"targetURL": targetURL,
+			"error":     err.Error(),
+			"errorType": "ChromeDPナビゲーションエラー",
+		}).Error("TIOBEページへのナビゲーションに失敗しました")
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to navigate to TIOBE page"})
 	}
 
 	err = chromedp.Run(ctx, chromedp.WaitVisible(`#container`, chromedp.ByID))
 	if err != nil {
-		logrus.Fatalf("Element visibility error: %v", err)
+		logrus.WithFields(logrus.Fields{
+			"handler":   "TiobeGraph",
+			"targetURL": targetURL,
+			"selector":  "#container",
+			"error":     err.Error(),
+			"errorType": "要素表示待機エラー",
+		}).Error("TIOBEグラフ要素の表示待機に失敗しました")
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to load TIOBE graph"})
 	}
 
 	err = chromedp.Run(ctx, chromedp.OuterHTML(`#container`, &graphHTML, chromedp.ByID))
 	if err != nil {
-		logrus.Fatalf("OuterHTML extraction error: %v", err)
+		logrus.WithFields(logrus.Fields{
+			"handler":   "TiobeGraph",
+			"targetURL": targetURL,
+			"selector":  "#container",
+			"error":     err.Error(),
+			"errorType": "HTML抽出エラー",
+		}).Error("TIOBEグラフのHTML抽出に失敗しました")
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to extract TIOBE graph"})
 	}
 
-	logrus.Info("TIOBEグラフの取得に成功しました") // デバッグ用ログ
+	logrus.WithFields(logrus.Fields{
+		"handler":   "TiobeGraph",
+		"htmlSize":  len(graphHTML),
+		"targetURL": targetURL,
+	}).Info("TIOBEグラフの取得に成功しました")
 	return c.JSON(http.StatusOK, graphHTML)
 }
 
 func AIArticleSummary(c echo.Context) error {
 	// クエリパラメータからURLを取得
 	urlData := c.QueryParam("url")
+	logrus.WithFields(logrus.Fields{
+		"handler": "AIArticleSummary",
+		"method":  c.Request().Method,
+		"path":    c.Request().URL.Path,
+		"url":     urlData,
+	}).Info("ハンドラー呼び出し")
+
 	if urlData == "" {
-		logrus.Fatal("URLパラメータが必要です")
+		logrus.WithFields(logrus.Fields{
+			"handler":   "AIArticleSummary",
+			"errorType": "パラメータバリデーションエラー",
+		}).Error("URLパラメータが必要です")
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "URLパラメータが必要です。"})
 	}
 
 	tags := []string{".article__content"}
 	htmlData, err := usecase.ScrapeStaticPage(c, urlData, tags)
 	if err != nil {
-		logrus.Fatalf("scraping error: %v", err)
+		logrus.WithFields(logrus.Fields{
+			"handler":   "AIArticleSummary",
+			"url":       urlData,
+			"tags":      tags,
+			"error":     err.Error(),
+			"errorType": "スクレイピングエラー",
+		}).Error("記事のスクレイピングに失敗しました")
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "scraping error"})
 	}
 
 	// リクエストURLの構築
 	requestText := "下記の記事の内容を簡潔に日本語で要約してください。その際に、結果から記載してください。\n" + htmlData
-	logrus.Info("requestText length: ", len(requestText))
+	logrus.WithFields(logrus.Fields{
+		"handler":        "AIArticleSummary",
+		"url":            urlData,
+		"requestTextLen": len(requestText),
+		"scrapedDataLen": len(htmlData),
+	}).Info("Gemini APIリクエスト準備完了")
 
 	summary, err := usecase.RequestGemini(c, requestText)
 	if err != nil {
-		log.Fatalf("エラー: Gemini APIリクエストに失敗しました: %v", err)
+		logrus.WithFields(logrus.Fields{
+			"handler":   "AIArticleSummary",
+			"url":       urlData,
+			"error":     err.Error(),
+			"errorType": "Gemini APIエラー",
+		}).Error("Gemini APIリクエストに失敗しました")
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Gemini APIリクエストに失敗しました。"})
 	}
 
@@ -257,35 +391,65 @@ func AIArticleSummary(c echo.Context) error {
 }
 
 func AIRepositorySummary(c echo.Context) error {
-	logrus.Info("AIRepositorySummaryハンドラーが呼び出されました") // デバッグ用ログ
 	// クエリパラメータからURLを取得
 	urlData := c.QueryParam("url")
+	logrus.WithFields(logrus.Fields{
+		"handler": "AIRepositorySummary",
+		"method":  c.Request().Method,
+		"path":    c.Request().URL.Path,
+		"url":     urlData,
+	}).Info("ハンドラー呼び出し")
+
 	if urlData == "" {
-		logrus.Fatal("URLパラメータが必要です")
+		logrus.WithFields(logrus.Fields{
+			"handler":   "AIRepositorySummary",
+			"errorType": "パラメータバリデーションエラー",
+		}).Error("URLパラメータが必要です")
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "URLパラメータが必要です。"})
 	}
 
 	parsedURL, err := url.Parse(urlData)
 	if err != nil {
-		logrus.Fatal("URL解析エラー:", err)
+		logrus.WithFields(logrus.Fields{
+			"handler":   "AIRepositorySummary",
+			"url":       urlData,
+			"error":     err.Error(),
+			"errorType": "URL解析エラー",
+		}).Error("URLの解析に失敗しました")
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "URL解析エラー"})
 	}
 
 	parts := strings.Split(strings.Trim(parsedURL.Path, "/"), "/")
 	if len(parts) < 2 {
-		logrus.Fatal("URLが正しい形式ではありません")
+		logrus.WithFields(logrus.Fields{
+			"handler":   "AIRepositorySummary",
+			"url":       urlData,
+			"parts":     parts,
+			"errorType": "URLフォーマットエラー",
+		}).Error("URLが正しい形式ではありません（owner/repo形式が必要）")
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "URLが正しい形式ではありません"})
 	}
 	owner := parts[0]
 	repoName := parts[1]
 
-	// コンテキストの作成
-	ctx := context.Background()
+	logrus.WithFields(logrus.Fields{
+		"handler":  "AIRepositorySummary",
+		"owner":    owner,
+		"repoName": repoName,
+	}).Info("GitHubリポジトリ情報取得開始")
+
+	// タイムアウト付きコンテキストの作成
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 
 	// 環境変数から OAuth トークンを取得
 	token := os.Getenv("GITHUB_OAUTH_TOKEN")
 	if token == "" {
-		log.Fatal("環境変数 GITHUB_OAUTH_TOKEN が設定されていません")
+		logrus.WithFields(logrus.Fields{
+			"handler":   "AIRepositorySummary",
+			"errorType": "環境変数エラー",
+		}).Error("環境変数 GITHUB_OAUTH_TOKEN が設定されていません")
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "GitHub OAuth トークンが設定されていません"})
 	}
 
 	// OAuth2 クライアントの作成
@@ -298,7 +462,14 @@ func AIRepositorySummary(c echo.Context) error {
 	// 1. リポジトリ情報の取得
 	repo, _, err := client.Repositories.Get(ctx, owner, repoName)
 	if err != nil {
-		log.Fatalf("リポジトリ情報の取得に失敗しました: %v", err)
+		logrus.WithFields(logrus.Fields{
+			"handler":   "AIRepositorySummary",
+			"owner":     owner,
+			"repoName":  repoName,
+			"error":     err.Error(),
+			"errorType": "GitHub APIエラー",
+		}).Error("リポジトリ情報の取得に失敗しました")
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "リポジトリ情報の取得に失敗しました"})
 	}
 
 	var builder strings.Builder
@@ -316,13 +487,27 @@ func AIRepositorySummary(c echo.Context) error {
 	// 2. README の取得
 	readme, _, err := client.Repositories.GetReadme(ctx, owner, repoName, nil)
 	if err != nil {
-		log.Fatalf("README の取得に失敗しました: %v", err)
+		logrus.WithFields(logrus.Fields{
+			"handler":   "AIRepositorySummary",
+			"owner":     owner,
+			"repoName":  repoName,
+			"error":     err.Error(),
+			"errorType": "GitHub APIエラー",
+		}).Error("READMEの取得に失敗しました")
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "README の取得に失敗しました"})
 	}
 
 	// READMEの内容をデコード（go-github の GetContent メソッドを使用）
 	readmeContent, err := readme.GetContent()
 	if err != nil {
-		log.Fatalf("README のデコードに失敗しました: %v", err)
+		logrus.WithFields(logrus.Fields{
+			"handler":   "AIRepositorySummary",
+			"owner":     owner,
+			"repoName":  repoName,
+			"error":     err.Error(),
+			"errorType": "READMEデコードエラー",
+		}).Error("READMEのデコードに失敗しました")
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "README のデコードに失敗しました"})
 	}
 
 	builder.WriteString(fmt.Sprintf("==== README 内容 ==== %s", readmeContent))
@@ -330,14 +515,32 @@ func AIRepositorySummary(c echo.Context) error {
 	repoData := builder.String()
 
 	requestText := "下記はGithubリポジトリのREADMEの内容です。簡潔に日本語で要約してください。その際に、結果から記載してください。\n" + repoData
-	logrus.Info("requestText length: ", len(requestText))
-	logrus.Info("requestText content: ", requestText)
+	logrus.WithFields(logrus.Fields{
+		"handler":        "AIRepositorySummary",
+		"owner":          owner,
+		"repoName":       repoName,
+		"requestTextLen": len(requestText),
+		"repoDataLen":    len(repoData),
+	}).Info("Gemini APIリクエスト準備完了")
 
 	summary, err := usecase.RequestGemini(c, requestText)
 	if err != nil {
-		log.Fatalf("エラー: Gemini APIリクエストに失敗しました: %v", err)
+		logrus.WithFields(logrus.Fields{
+			"handler":   "AIRepositorySummary",
+			"owner":     owner,
+			"repoName":  repoName,
+			"error":     err.Error(),
+			"errorType": "Gemini APIエラー",
+		}).Error("Gemini APIリクエストに失敗しました")
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Gemini APIリクエストに失敗しました。"})
 	}
+
+	logrus.WithFields(logrus.Fields{
+		"handler":    "AIRepositorySummary",
+		"owner":      owner,
+		"repoName":   repoName,
+		"summaryLen": len(summary),
+	}).Info("リポジトリ要約生成成功")
 
 	// JSONオブジェクトとしてサマリーを返す
 	return c.JSON(http.StatusOK, map[string]string{"summary": summary})
@@ -349,18 +552,34 @@ type RequestData struct {
 }
 
 func AITrendsSummary(c echo.Context) error {
-	logrus.Info("AITrendsSummaryハンドラーが呼び出されました") // デバッグ用ログ
+	logrus.WithFields(logrus.Fields{
+		"handler": "AITrendsSummary",
+		"method":  c.Request().Method,
+		"path":    c.Request().URL.Path,
+	}).Info("ハンドラー呼び出し")
+
 	// JSONボディを構造体にバインドする
 	var reqData RequestData
 	if err := c.Bind(&reqData); err != nil {
-		// バインドに失敗した場合、400エラーを返す
+		logrus.WithFields(logrus.Fields{
+			"handler":   "AITrendsSummary",
+			"error":     err.Error(),
+			"errorType": "リクエストバインドエラー",
+		}).Error("リクエストデータのバインドに失敗しました")
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "リクエストデータが無効です"})
 	}
 	pageData := reqData.Data
 
-	logrus.Info("pageData length: ", len(pageData))
+	logrus.WithFields(logrus.Fields{
+		"handler":     "AITrendsSummary",
+		"pageDataLen": len(pageData),
+	}).Info("リクエストデータ受信")
+
 	if pageData == "" {
-		logrus.Fatal("dataパラメータが必要です")
+		logrus.WithFields(logrus.Fields{
+			"handler":   "AITrendsSummary",
+			"errorType": "パラメータバリデーションエラー",
+		}).Error("dataパラメータが必要です")
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "dataパラメータが必要です。"})
 	}
 
@@ -368,35 +587,74 @@ func AITrendsSummary(c echo.Context) error {
 	reader := strings.NewReader(pageData)
 	doc, err := goquery.NewDocumentFromReader(reader)
 	if err != nil {
-		logrus.Errorf("goquery ドキュメント作成エラー: %v", err)
+		logrus.WithFields(logrus.Fields{
+			"handler":   "AITrendsSummary",
+			"error":     err.Error(),
+			"errorType": "HTMLパースエラー",
+		}).Error("goqueryドキュメント作成に失敗しました")
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "HTMLの解析に失敗しました"})
 	}
-	getData, err := usecase.GetTagDataFromHTML(doc, []string{"#rss-feed-table tr", "#github-trending-table tr", "#golangweekly-container"})
+
+	tags := []string{"#rss-feed-table tr", "#github-trending-table tr", "#golangweekly-container"}
+	getData, err := usecase.GetTagDataFromHTML(doc, tags)
 	if err != nil {
-		log.Fatalf("エラー: HTMLの解析に失敗しました2: %v", err)
+		logrus.WithFields(logrus.Fields{
+			"handler":   "AITrendsSummary",
+			"tags":      tags,
+			"error":     err.Error(),
+			"errorType": "HTMLタグ抽出エラー",
+		}).Error("HTMLタグデータの抽出に失敗しました")
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "HTMLの解析に失敗しました。2"})
 	}
-	logrus.Infof("get data: %s", getData)
 
 	requestText := "下記は最新のIT業界のNews一覧です。後述の項目に沿って要約してMarkdown形式で回答してください。・全てのデータから読み取れる傾向と推測される理由 ・InfoQから読み取れる傾向と推測される理由 ・Github daily trendsから読み取れる傾向と推測される理由・golangWeeklyから読み取れる傾向と推測される理由\n" + getData
-	logrus.Info("requestText length: ", len(requestText))
-	logrus.Info("requestText content: ", requestText)
+	logrus.WithFields(logrus.Fields{
+		"handler":        "AITrendsSummary",
+		"requestTextLen": len(requestText),
+		"extractedLen":   len(getData),
+	}).Info("Gemini APIリクエスト準備完了")
 
 	summary, err := usecase.RequestGemini(c, requestText)
 	if err != nil {
-		logrus.Fatalf("エラー: Gemini APIリクエストに失敗しました: %v", err)
+		logrus.WithFields(logrus.Fields{
+			"handler":   "AITrendsSummary",
+			"error":     err.Error(),
+			"errorType": "Gemini APIエラー",
+		}).Error("Gemini APIリクエストに失敗しました")
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Gemini APIリクエストに失敗しました。"})
 	}
+
+	logrus.WithFields(logrus.Fields{
+		"handler":    "AITrendsSummary",
+		"summaryLen": len(summary),
+	}).Info("トレンド要約生成成功")
 
 	// JSONオブジェクトとしてサマリーを返す
 	return c.JSON(http.StatusOK, map[string]string{"summary": summary})
 }
 
 func GolangWeeklyContent(c echo.Context) error {
-	logrus.Info("GolangWeeklyContentハンドラーが呼び出されました") // デバッグ用ログ
+	targetURL := "https://golangweekly.com/rss/"
+	logrus.WithFields(logrus.Fields{
+		"handler":   "GolangWeeklyContent",
+		"method":    c.Request().Method,
+		"path":      c.Request().URL.Path,
+		"targetURL": targetURL,
+	}).Info("ハンドラー呼び出し")
 
-	resp, err := http.Get("https://golangweekly.com/rss/")
+	// タイムアウト付きHTTPクライアントを作成
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	resp, err := client.Get(targetURL)
 	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"handler":   "GolangWeeklyContent",
+			"targetURL": targetURL,
+			"error":     err.Error(),
+			"errorType": "HTTPリクエストエラー",
+		}).Error("GolangWeekly RSSフィードの取得に失敗しました")
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to fetch feed"})
 	}
 	defer resp.Body.Close()
@@ -420,10 +678,27 @@ func GolangWeeklyContent(c echo.Context) error {
 }
 
 func GoogleCloudContent(c echo.Context) error {
-	logrus.Info("GoogleCloudContentハンドラーが呼び出されました") // デバッグ用ログ
+	targetURL := "https://cloudblog.withgoogle.com/products/gcp/rss/"
+	logrus.WithFields(logrus.Fields{
+		"handler":   "GoogleCloudContent",
+		"method":    c.Request().Method,
+		"path":      c.Request().URL.Path,
+		"targetURL": targetURL,
+	}).Info("ハンドラー呼び出し")
 
-	resp, err := http.Get("https://cloudblog.withgoogle.com/products/gcp/rss/")
+	// タイムアウト付きHTTPクライアントを作成
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	resp, err := client.Get(targetURL)
 	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"handler":   "GoogleCloudContent",
+			"targetURL": targetURL,
+			"error":     err.Error(),
+			"errorType": "HTTPリクエストエラー",
+		}).Error("Google Cloud RSSフィードの取得に失敗しました")
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to fetch feed"})
 	}
 	defer resp.Body.Close()
@@ -446,23 +721,52 @@ func GoogleCloudContent(c echo.Context) error {
 	return nil
 }
 func AWSContent(c echo.Context) error {
-	logrus.Info("AWSContentハンドラーが呼び出されました") // デバッグ用ログ
+	targetURL := "https://aws.amazon.com/blogs/aws/feed/"
+	logrus.WithFields(logrus.Fields{
+		"handler":   "AWSContent",
+		"method":    c.Request().Method,
+		"path":      c.Request().URL.Path,
+		"targetURL": targetURL,
+	}).Info("ハンドラー呼び出し")
+
+	// タイムアウト付きHTTPクライアントを作成
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
 
 	// AWSのRSSフィードを取得
-	resp, err := http.Get("https://aws.amazon.com/blogs/aws/feed/")
+	resp, err := client.Get(targetURL)
 	if err != nil {
-		log.Printf("Error fetching AWS feed: %v", err)
+		logrus.WithFields(logrus.Fields{
+			"handler":   "AWSContent",
+			"targetURL": targetURL,
+			"error":     err.Error(),
+			"errorType": "HTTPリクエストエラー",
+		}).Error("AWS RSSフィードの取得に失敗しました")
 		return c.String(http.StatusInternalServerError, "Error fetching AWS feed")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		logrus.WithFields(logrus.Fields{
+			"handler":    "AWSContent",
+			"targetURL":  targetURL,
+			"statusCode": resp.StatusCode,
+			"status":     resp.Status,
+			"errorType":  "HTTPステータスコードエラー",
+		}).Error("AWS RSSフィードのステータスコードエラー")
 		return c.String(http.StatusInternalServerError, "Error fetching AWS feed: "+resp.Status)
 	}
 
 	// レスポンスボディを読み込み
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"handler":   "AWSContent",
+			"targetURL": targetURL,
+			"error":     err.Error(),
+			"errorType": "レスポンス読み込みエラー",
+		}).Error("AWS RSSフィードの読み込みに失敗しました")
 		return c.String(http.StatusInternalServerError, "Error reading feed")
 	}
 
@@ -471,25 +775,59 @@ func AWSContent(c echo.Context) error {
 	return c.String(http.StatusOK, string(body))
 }
 func AzureContent(c echo.Context) error {
-	logrus.Info("AzureContentハンドラーが呼び出されました") // デバッグ用ログ
+	targetURL := "https://azure.microsoft.com/ja-jp/blog/feed/"
+	logrus.WithFields(logrus.Fields{
+		"handler":   "AzureContent",
+		"method":    c.Request().Method,
+		"path":      c.Request().URL.Path,
+		"targetURL": targetURL,
+	}).Info("ハンドラー呼び出し")
+
+	// タイムアウト付きHTTPクライアントを作成
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
 
 	// AzureRSSフィードを取得
-	resp, err := http.Get("https://azure.microsoft.com/ja-jp/blog/feed/")
+	resp, err := client.Get(targetURL)
 	if err != nil {
-		log.Printf("Error fetching Azure feed: %v", err)
+		logrus.WithFields(logrus.Fields{
+			"handler":   "AzureContent",
+			"targetURL": targetURL,
+			"error":     err.Error(),
+			"errorType": "HTTPリクエストエラー",
+		}).Error("Azure RSSフィードの取得に失敗しました")
 		return c.String(http.StatusInternalServerError, "Error fetching Azure feed")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		logrus.WithFields(logrus.Fields{
+			"handler":    "AzureContent",
+			"targetURL":  targetURL,
+			"statusCode": resp.StatusCode,
+			"status":     resp.Status,
+			"errorType":  "HTTPステータスコードエラー",
+		}).Error("Azure RSSフィードのステータスコードエラー")
 		return c.String(http.StatusInternalServerError, "Error fetching Azure feed: "+resp.Status)
 	}
 
 	// レスポンスボディを読み込み
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"handler":   "AzureContent",
+			"targetURL": targetURL,
+			"error":     err.Error(),
+			"errorType": "レスポンス読み込みエラー",
+		}).Error("Azure RSSフィードの読み込みに失敗しました")
 		return c.String(http.StatusInternalServerError, "Error reading feed")
 	}
+
+	logrus.WithFields(logrus.Fields{
+		"handler":  "AzureContent",
+		"bodySize": len(body),
+	}).Info("Azure RSSフィード取得成功")
 
 	// XMLとして返す（Content-Typeをapplication/xmlに設定）
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMEApplicationXML)
