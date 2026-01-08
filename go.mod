@@ -5,7 +5,7 @@ go 1.23.4
 require (
 	github.com/PuerkitoBio/goquery v1.10.1
 	github.com/chromedp/chromedp v0.12.1
-	github.com/google/generative-ai-go v0.19.0
+	github.com/google/generative-ai-go v0.20.1
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/labstack/echo/v4 v4.13.3
 	github.com/mmcdole/gofeed v1.3.0

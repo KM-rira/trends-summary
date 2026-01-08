@@ -44,7 +44,7 @@ func RequestGemini(c echo.Context, requestText string) (string, error) {
 	}
 	defer client.Close()
 
-	modelName := "gemini-1.5-flash"
+	modelName := "gemini-3-flash"
 	logrus.WithFields(logrus.Fields{
 		"function":  "RequestGemini",
 		"modelName": modelName,
