@@ -54,17 +54,13 @@ func main() {
 	
 	e.POST("/ai-trends-summary", handlers.AITrendsSummary)
 
-	// 静的ファイルを提供（React assetsなど）- APIルートの後に配置
+	// 静的ファイルを提供（ワイルドカードの前に配置することが重要）
 	e.Static("/assets", "static/assets")
 	e.Static("/static", "static")
-	
-	// vite.svgを配信
-	e.GET("/vite.svg", func(c echo.Context) error {
-		return c.File("static/vite.svg")
-	})
+	e.File("/vite.svg", "static/vite.svg")
 
-	// React SPAのフォールバック（すべての未定義ルートでindex.htmlを返す）
-	e.GET("/*", func(c echo.Context) error {
+	// ルートアクセスでindex.htmlを返す
+	e.GET("/", func(c echo.Context) error {
 		return c.File("static/index.html")
 	})
 
