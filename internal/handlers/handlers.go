@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -21,7 +22,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// Index はRSSフィードを取得して、HTMLまたはJSONで出力するハンドラーです。
+// Index はRSSフィードを取得して、HTMLまたはJSONで出力するハンドラーです。（英語版）
 func Index(c echo.Context) error {
 	logrus.WithFields(logrus.Fields{
 		"handler": "Index",
@@ -70,6 +71,88 @@ func Index(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"title":       feed.Title,
 		"description": feed.Description,
+		"items":       feedItems,
+	})
+}
+
+// IndexJA はRSSフィードを取得して、HTMLまたはJSONで出力するハンドラーです。（日本語版）
+func IndexJA(c echo.Context) error {
+	logrus.WithFields(logrus.Fields{
+		"handler": "IndexJA",
+		"method":  c.Request().Method,
+		"path":    c.Request().URL.Path,
+	}).Info("ハンドラー呼び出し（日本語版）")
+
+	// 複数のRSSフィードURL（日本語版トピック別）
+	rssURLs := []string{
+		"https://feed.infoq.com/jp/ai-ml-data-eng/",
+		"https://feed.infoq.com/jp/development/",
+		"https://feed.infoq.com/jp/architecture-design/",
+		"https://feed.infoq.com/jp/devops/",
+		"https://feed.infoq.com/jp/culture-methods/",
+	}
+
+	// パーサーの作成
+	fp := gofeed.NewParser()
+
+	// 全フィードからアイテムを収集
+	var allItems []*gofeed.Item
+	for _, rssURL := range rssURLs {
+		feed, err := fp.ParseURL(rssURL)
+		if err != nil {
+			logrus.WithFields(logrus.Fields{
+				"handler": "IndexJA",
+				"rssURL":  rssURL,
+				"error":   err.Error(),
+			}).Warn("一部のRSSフィード取得に失敗しました（スキップ）")
+			continue
+		}
+
+		logrus.WithFields(logrus.Fields{
+			"handler":   "IndexJA",
+			"rssURL":    rssURL,
+			"feedTitle": feed.Title,
+			"itemCount": len(feed.Items),
+		}).Info("RSSフィード取得成功")
+
+		allItems = append(allItems, feed.Items...)
+	}
+
+	if len(allItems) == 0 {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "すべてのRSSフィード取得に失敗しました",
+		})
+	}
+
+	// 公開日時でソート（新しい順）
+	sort.Slice(allItems, func(i, j int) bool {
+		if allItems[i].PublishedParsed == nil || allItems[j].PublishedParsed == nil {
+			return false
+		}
+		return allItems[i].PublishedParsed.After(*allItems[j].PublishedParsed)
+	})
+
+	// フィード情報を整形
+	feedItems := []map[string]interface{}{}
+	for _, item := range allItems {
+		feedItems = append(feedItems, map[string]interface{}{
+			"title":       item.Title,
+			"link":        item.Link,
+			"published":   item.Published,
+			"description": item.Description,
+		})
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"handler":       "IndexJA",
+		"totalItems":    len(allItems),
+		"feedsProcessed": len(rssURLs),
+	}).Info("全RSSフィード統合完了（日本語版）")
+
+	// JSONレスポンスを返却
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"title":       "InfoQ 日本語版（統合フィード）",
+		"description": "AI/ML、開発、アーキテクチャ、DevOps、カルチャー・メソッドの統合フィード",
 		"items":       feedItems,
 	})
 }
@@ -774,8 +857,111 @@ func AWSContent(c echo.Context) error {
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMEApplicationXML)
 	return c.String(http.StatusOK, string(body))
 }
+// GoogleCloudContentJA は日本語版のGCP RSSフィードを取得します
+func GoogleCloudContentJA(c echo.Context) error {
+	targetURL := "https://cloudblog.withgoogle.com/ja/products/gcp/rss/"
+	logrus.WithFields(logrus.Fields{
+		"handler":   "GoogleCloudContentJA",
+		"method":    c.Request().Method,
+		"path":      c.Request().URL.Path,
+		"targetURL": targetURL,
+	}).Info("ハンドラー呼び出し（日本語版）")
+
+	// タイムアウト付きHTTPクライアントを作成
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	// GCP RSSフィードを取得
+	resp, err := client.Get(targetURL)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"handler":   "GoogleCloudContentJA",
+			"targetURL": targetURL,
+			"error":     err.Error(),
+			"errorType": "HTTPリクエストエラー",
+		}).Error("Google Cloud RSSフィードの取得に失敗しました")
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to fetch feed"})
+	}
+	defer resp.Body.Close()
+
+	// Echo の Response を取得
+	res := c.Response()
+
+	// 取得した RSS のレスポンスヘッダーをそのまま転送
+	for k, values := range resp.Header {
+		for _, v := range values {
+			res.Header().Add(k, v)
+		}
+	}
+	res.WriteHeader(resp.StatusCode)
+
+	// Body の内容を転送
+	if _, err := io.Copy(res, resp.Body); err != nil {
+		return err
+	}
+	return nil
+}
+
+// AWSContentJA は日本語版のAWS RSSフィードを取得します
+func AWSContentJA(c echo.Context) error {
+	targetURL := "https://aws.amazon.com/jp/blogs/news/feed/"
+	logrus.WithFields(logrus.Fields{
+		"handler":   "AWSContentJA",
+		"method":    c.Request().Method,
+		"path":      c.Request().URL.Path,
+		"targetURL": targetURL,
+	}).Info("ハンドラー呼び出し（日本語版）")
+
+	// タイムアウト付きHTTPクライアントを作成
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	// AWSのRSSフィードを取得
+	resp, err := client.Get(targetURL)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"handler":   "AWSContentJA",
+			"targetURL": targetURL,
+			"error":     err.Error(),
+			"errorType": "HTTPリクエストエラー",
+		}).Error("AWS RSSフィードの取得に失敗しました")
+		return c.String(http.StatusInternalServerError, "Error fetching AWS feed")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		logrus.WithFields(logrus.Fields{
+			"handler":    "AWSContentJA",
+			"targetURL":  targetURL,
+			"statusCode": resp.StatusCode,
+			"status":     resp.Status,
+			"errorType":  "HTTPステータスコードエラー",
+		}).Error("AWS RSSフィードのステータスコードエラー")
+		return c.String(http.StatusInternalServerError, "Error fetching AWS feed: "+resp.Status)
+	}
+
+	// レスポンスボディを読み込み
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"handler":   "AWSContentJA",
+			"targetURL": targetURL,
+			"error":     err.Error(),
+			"errorType": "レスポンス読み込みエラー",
+		}).Error("AWS RSSフィードの読み込みに失敗しました")
+		return c.String(http.StatusInternalServerError, "Error reading feed")
+	}
+
+	// XMLとして返す（Content-Typeをapplication/xmlに設定）
+	c.Response().Header().Set(echo.HeaderContentType, echo.MIMEApplicationXML)
+	return c.String(http.StatusOK, string(body))
+}
+
+// AzureContent は英語版のAzure RSSフィードを取得します
 func AzureContent(c echo.Context) error {
-	targetURL := "https://azure.microsoft.com/ja-jp/blog/feed/"
+	targetURL := "https://azure.microsoft.com/en-us/blog/feed/"
 	logrus.WithFields(logrus.Fields{
 		"handler":   "AzureContent",
 		"method":    c.Request().Method,
@@ -828,6 +1014,67 @@ func AzureContent(c echo.Context) error {
 		"handler":  "AzureContent",
 		"bodySize": len(body),
 	}).Info("Azure RSSフィード取得成功")
+
+	// XMLとして返す（Content-Typeをapplication/xmlに設定）
+	c.Response().Header().Set(echo.HeaderContentType, echo.MIMEApplicationXML)
+	return c.String(http.StatusOK, string(body))
+}
+
+// AzureContentJA は日本語版のAzure RSSフィードを取得します
+func AzureContentJA(c echo.Context) error {
+	targetURL := "https://news.microsoft.com/ja-jp?feed=rss2"
+	logrus.WithFields(logrus.Fields{
+		"handler":   "AzureContentJA",
+		"method":    c.Request().Method,
+		"path":      c.Request().URL.Path,
+		"targetURL": targetURL,
+	}).Info("ハンドラー呼び出し（日本語版）")
+
+	// タイムアウト付きHTTPクライアントを作成
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	// AzureRSSフィードを取得
+	resp, err := client.Get(targetURL)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"handler":   "AzureContentJA",
+			"targetURL": targetURL,
+			"error":     err.Error(),
+			"errorType": "HTTPリクエストエラー",
+		}).Error("Azure RSSフィードの取得に失敗しました")
+		return c.String(http.StatusInternalServerError, "Error fetching Azure feed")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		logrus.WithFields(logrus.Fields{
+			"handler":    "AzureContentJA",
+			"targetURL":  targetURL,
+			"statusCode": resp.StatusCode,
+			"status":     resp.Status,
+			"errorType":  "HTTPステータスコードエラー",
+		}).Error("Azure RSSフィードのステータスコードエラー")
+		return c.String(http.StatusInternalServerError, "Error fetching Azure feed: "+resp.Status)
+	}
+
+	// レスポンスボディを読み込み
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"handler":   "AzureContentJA",
+			"targetURL": targetURL,
+			"error":     err.Error(),
+			"errorType": "レスポンス読み込みエラー",
+		}).Error("Azure RSSフィードの読み込みに失敗しました")
+		return c.String(http.StatusInternalServerError, "Error reading feed")
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"handler":  "AzureContentJA",
+		"bodySize": len(body),
+	}).Info("Azure RSSフィード取得成功（日本語版）")
 
 	// XMLとして返す（Content-Typeをapplication/xmlに設定）
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMEApplicationXML)

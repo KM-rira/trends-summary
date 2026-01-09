@@ -30,15 +30,15 @@ func main() {
 	e.Server.WriteTimeout = 60 * time.Second
 	e.Server.IdleTimeout = 120 * time.Second
 
-	// 静的ファイルを提供
-	e.Static("/static", "static") // staticディレクトリ内のファイルを提供
-
-	// ルーティングの設定
-	e.GET("/", func(c echo.Context) error {
-		return c.File("static/index.html") // HTMLファイルを返す
-	})
-	// RSSフィード用のエンドポイント
+	// 静的ファイルを提供（React assetsなど）
+	e.Static("/assets", "static/assets")
+	
+	// 古いstaticファイルも提供（既存のCSS/JSがあれば）
+	e.Static("/static", "static")
+	// RSSフィード用のエンドポイント（英語版）
 	e.GET("/rss", handlers.Index) // JSONレスポンスを返すエンドポイント
+	e.GET("/rss-ja", handlers.IndexJA) // 日本語版
+	
 	// GitHubトレンド用のエンドポイント
 	e.GET("/github-trending", handlers.GitHubTrendingHandler)
 	e.GET("/golang-repository-trending", handlers.GolangRepsitoryTrendingHandler)
@@ -46,11 +46,24 @@ func main() {
 	e.GET("/ai-article-summary", handlers.AIArticleSummary)
 	e.GET("/ai-repository-summary", handlers.AIRepositorySummary)
 	e.GET("/golang-weekly-content", handlers.GolangWeeklyContent)
+	
+	// クラウドRSSフィード（英語版）
 	e.GET("/google-cloud-content", handlers.GoogleCloudContent)
 	e.GET("/aws-content", handlers.AWSContent)
 	e.GET("/azure-content", handlers.AzureContent)
+	
+	// クラウドRSSフィード（日本語版）
+	e.GET("/google-cloud-content-ja", handlers.GoogleCloudContentJA)
+	e.GET("/aws-content-ja", handlers.AWSContentJA)
+	e.GET("/azure-content-ja", handlers.AzureContentJA)
+	
 	e.POST("/ai-trends-summary", handlers.AITrendsSummary)
 
+	// React SPAのフォールバック（すべての未定義ルートでindex.htmlを返す）
+	e.GET("/*", func(c echo.Context) error {
+		return c.File("static/index.html")
+	})
+
 	// サーバーの起動
-	e.Logger.Fatal(e.Start(":80"))
+	e.Logger.Fatal(e.Start(":8080"))
 }

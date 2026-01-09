@@ -1,0 +1,39 @@
+.language-selector {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: white;
+  padding: 10px 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.language-selector label {
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+}
+
+.language-selector select {
+  padding: 5px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.language-selector select:hover {
+  border-color: #007bff;
+}
+
+.language-selector select:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
