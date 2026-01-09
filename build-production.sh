@@ -11,9 +11,12 @@ echo "=== ビルド成果物をstaticディレクトリにコピー ==="
 # 既存のstatic内のReact関連ファイルを削除（古いCSSやJSは残す）
 rm -rf static/assets
 rm -f static/index.html
+rm -f static/vite.svg
 
 # ビルドされたファイルをstaticにコピー
-cp -r frontend/dist/* static/
+cp -r frontend/dist/assets static/
+cp frontend/dist/index.html static/
+cp frontend/dist/vite.svg static/
 
 echo "=== Goバイナリのビルド ==="
 go build -o trends-summary
