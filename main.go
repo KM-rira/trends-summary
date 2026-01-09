@@ -30,11 +30,6 @@ func main() {
 	e.Server.WriteTimeout = 60 * time.Second
 	e.Server.IdleTimeout = 120 * time.Second
 
-	// 静的ファイルを提供（React assetsなど）
-	e.Static("/assets", "static/assets")
-	
-	// 古いstaticファイルも提供（既存のCSS/JSがあれば）
-	e.Static("/static", "static")
 	// RSSフィード用のエンドポイント（英語版）
 	e.GET("/rss", handlers.Index) // JSONレスポンスを返すエンドポイント
 	e.GET("/rss-ja", handlers.IndexJA) // 日本語版
@@ -59,11 +54,20 @@ func main() {
 	
 	e.POST("/ai-trends-summary", handlers.AITrendsSummary)
 
+	// 静的ファイルを提供（React assetsなど）- APIルートの後に配置
+	e.Static("/assets", "static/assets")
+	e.Static("/static", "static")
+	
+	// vite.svgを配信
+	e.GET("/vite.svg", func(c echo.Context) error {
+		return c.File("static/vite.svg")
+	})
+
 	// React SPAのフォールバック（すべての未定義ルートでindex.htmlを返す）
 	e.GET("/*", func(c echo.Context) error {
 		return c.File("static/index.html")
 	})
 
 	// サーバーの起動
-	e.Logger.Fatal(e.Start(":8080"))
+	e.Logger.Fatal(e.Start(":80"))
 }
