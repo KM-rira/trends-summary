@@ -34,5 +34,5 @@ echo "📊 サービスステータス："
 sudo systemctl status trends-summary --no-pager -l
 
 echo ""
-echo "🌐 アクセスURL: http://your-server-address"
+echo "🌐 アクセスURL: ${MY_DOMAIN_URL}"
 echo "📝 ログ確認: sudo journalctl -u trends-summary -f"
