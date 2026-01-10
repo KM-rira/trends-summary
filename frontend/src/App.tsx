@@ -66,12 +66,6 @@ function MainApp() {
         <GitHubTrendingTable />
         <GolangRepositoryTrendingTable />
         <RSSFeedList
-          title="GolangWeekly"
-          queryKey="golang-weekly"
-          fetchFn={rssApi.getGolangWeekly}
-          supportsLanguage={false}
-        />
-        <RSSFeedList
           title="Google Cloud GCP RSS Feed"
           queryKey="gcp-rss"
           fetchFn={rssApi.getGoogleCloud}
@@ -88,6 +82,12 @@ function MainApp() {
           queryKey="azure-rss"
           fetchFn={rssApi.getAzure}
           supportsLanguage={true}
+        />
+        <RSSFeedList
+          title="GolangWeekly"
+          queryKey="golang-weekly"
+          fetchFn={rssApi.getGolangWeekly}
+          supportsLanguage={false}
         />
       </div>
     </div>
