@@ -9,6 +9,9 @@ echo ""
 echo "📦 trends-summaryサービスを停止中..."
 sudo systemctl stop trends-summary
 
+echo "🔒 Caddyを停止中..."
+sudo systemctl stop caddy
+
 # バイナリをコピー
 echo "📁 バイナリをコピー中..."
 sudo cp trends-summary /opt/trends-summary/trends-summary
@@ -26,12 +29,20 @@ sudo setcap 'cap_net_bind_service=+ep' /opt/trends-summary/trends-summary
 echo "🚀 trends-summaryサービスを起動中..."
 sudo systemctl start trends-summary
 
+echo "🔒 Caddyを起動中..."
+sudo systemctl start caddy
+
 # ステータス確認
 echo ""
 echo "✅ デプロイ完了！"
 echo ""
 echo "📊 サービスステータス："
-sudo systemctl status trends-summary --no-pager -l
+echo ""
+echo "=== trends-summary ==="
+sudo systemctl status trends-summary --no-pager
+echo ""
+echo "=== Caddy ==="
+sudo systemctl status caddy --no-pager
 
 echo ""
 echo "🌐 アクセスURL: ${MY_DOMAIN_URL}"
