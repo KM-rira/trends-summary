@@ -31,9 +31,9 @@ func main() {
 	e.Server.IdleTimeout = 120 * time.Second
 
 	// RSSフィード用のエンドポイント（英語版）
-	e.GET("/rss", handlers.Index) // JSONレスポンスを返すエンドポイント
+	e.GET("/rss", handlers.Index)      // JSONレスポンスを返すエンドポイント
 	e.GET("/rss-ja", handlers.IndexJA) // 日本語版
-	
+
 	// GitHubトレンド用のエンドポイント
 	e.GET("/github-trending", handlers.GitHubTrendingHandler)
 	e.GET("/golang-repository-trending", handlers.GolangRepsitoryTrendingHandler)
@@ -41,17 +41,17 @@ func main() {
 	e.GET("/ai-article-summary", handlers.AIArticleSummary)
 	e.GET("/ai-repository-summary", handlers.AIRepositorySummary)
 	e.GET("/golang-weekly-content", handlers.GolangWeeklyContent)
-	
+
 	// クラウドRSSフィード（英語版）
 	e.GET("/google-cloud-content", handlers.GoogleCloudContent)
 	e.GET("/aws-content", handlers.AWSContent)
 	e.GET("/azure-content", handlers.AzureContent)
-	
+
 	// クラウドRSSフィード（日本語版）
 	e.GET("/google-cloud-content-ja", handlers.GoogleCloudContentJA)
 	e.GET("/aws-content-ja", handlers.AWSContentJA)
 	e.GET("/azure-content-ja", handlers.AzureContentJA)
-	
+
 	e.POST("/ai-trends-summary", handlers.AITrendsSummary)
 
 	// 静的ファイルを提供（ワイルドカードの前に配置することが重要）
@@ -65,5 +65,5 @@ func main() {
 	})
 
 	// サーバーの起動
-	e.Logger.Fatal(e.Start(":80"))
+	e.Logger.Fatal(e.Start(":8080"))
 }
