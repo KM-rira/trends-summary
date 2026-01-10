@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 	"trends-summary/internal/handlers"
+	"trends-summary/internal/middleware"
 
 	"github.com/labstack/echo/v4" // バージョンを指定
 	"github.com/sirupsen/logrus"
@@ -30,29 +31,40 @@ func main() {
 	e.Server.WriteTimeout = 60 * time.Second
 	e.Server.IdleTimeout = 120 * time.Second
 
+	// 認証不要のエンドポイント
+	e.POST("/api/login", handlers.Login)
+	e.POST("/api/logout", handlers.Logout)
+	
+	// 認証が必要なAPIグループ
+	api := e.Group("")
+	api.Use(middleware.AuthMiddleware)
+	
+	// 認証状態確認
+	api.GET("/api/check-auth", handlers.CheckAuth)
+
 	// RSSフィード用のエンドポイント（英語版）
-	e.GET("/rss", handlers.Index)      // JSONレスポンスを返すエンドポイント
-	e.GET("/rss-ja", handlers.IndexJA) // 日本語版
+	api.GET("/rss", handlers.Index)      // JSONレスポンスを返すエンドポイント
+	api.GET("/rss-ja", handlers.IndexJA) // 日本語版
 
 	// GitHubトレンド用のエンドポイント
-	e.GET("/github-trending", handlers.GitHubTrendingHandler)
-	e.GET("/golang-repository-trending", handlers.GolangRepsitoryTrendingHandler)
-	e.GET("/tiobe-graph", handlers.TiobeGraph)
-	e.GET("/ai-article-summary", handlers.AIArticleSummary)
-	e.GET("/ai-repository-summary", handlers.AIRepositorySummary)
-	e.GET("/golang-weekly-content", handlers.GolangWeeklyContent)
+	api.GET("/github-trending", handlers.GitHubTrendingHandler)
+	api.GET("/golang-repository-trending", handlers.GolangRepsitoryTrendingHandler)
+	api.GET("/tiobe-graph", handlers.TiobeGraph)
+	api.GET("/ai-article-summary", handlers.AIArticleSummary)
+	api.GET("/ai-repository-summary", handlers.AIRepositorySummary)
+	api.GET("/golang-weekly-content", handlers.GolangWeeklyContent)
 
 	// クラウドRSSフィード（英語版）
-	e.GET("/google-cloud-content", handlers.GoogleCloudContent)
-	e.GET("/aws-content", handlers.AWSContent)
-	e.GET("/azure-content", handlers.AzureContent)
+	api.GET("/google-cloud-content", handlers.GoogleCloudContent)
+	api.GET("/aws-content", handlers.AWSContent)
+	api.GET("/azure-content", handlers.AzureContent)
 
 	// クラウドRSSフィード（日本語版）
-	e.GET("/google-cloud-content-ja", handlers.GoogleCloudContentJA)
-	e.GET("/aws-content-ja", handlers.AWSContentJA)
-	e.GET("/azure-content-ja", handlers.AzureContentJA)
+	api.GET("/google-cloud-content-ja", handlers.GoogleCloudContentJA)
+	api.GET("/aws-content-ja", handlers.AWSContentJA)
+	api.GET("/azure-content-ja", handlers.AzureContentJA)
 
-	e.POST("/ai-trends-summary", handlers.AITrendsSummary)
+	api.POST("/ai-trends-summary", handlers.AITrendsSummary)
 
 	// 静的ファイルを提供（ワイルドカードの前に配置することが重要）
 	e.Static("/assets", "static/assets")
