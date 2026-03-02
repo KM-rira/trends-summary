@@ -43,8 +43,8 @@ func main() {
 	api.GET("/api/check-auth", handlers.CheckAuth)
 
 	// RSSフィード用のエンドポイント（英語版）
-	api.GET("/trends-summary/rss", handlers.Index)      // JSONレスポンスを返すエンドポイント
-	api.GET("/trends-summary/rss-ja", handlers.IndexJA) // 日本語版
+	api.GET("/rss", handlers.Index)      // JSONレスポンスを返すエンドポイント
+	api.GET("/rss-ja", handlers.IndexJA) // 日本語版
 
 	// GitHubトレンド用のエンドポイント
 	api.GET("/github-trending", handlers.GitHubTrendingHandler)
