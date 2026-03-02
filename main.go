@@ -13,7 +13,7 @@ import (
 
 func main() {
 	fs := http.FileServer(http.Dir("./static"))
-	http.Handle("/static/", http.StripPrefix("/static/", fs))
+	http.Handle("/trends-summary/static/", http.StripPrefix("/trends-summary/static/", fs))
 
 	// logrusの出力先を標準出力に設定（journaldが収集）
 	logrus.SetOutput(os.Stdout)
@@ -32,19 +32,19 @@ func main() {
 	e.Server.IdleTimeout = 120 * time.Second
 
 	// 認証不要のエンドポイント
-	e.POST("/api/login", handlers.Login)
-	e.POST("/api/logout", handlers.Logout)
-	
+	e.POST("/trends-summary/api/login", handlers.Login)
+	e.POST("/trends-summary/api/logout", handlers.Logout)
+
 	// 認証が必要なAPIグループ
-	api := e.Group("")
+	api := e.Group("/trends-summary", middleware.AuthMiddleware)
 	api.Use(middleware.AuthMiddleware)
-	
+
 	// 認証状態確認
 	api.GET("/api/check-auth", handlers.CheckAuth)
 
 	// RSSフィード用のエンドポイント（英語版）
-	api.GET("/rss", handlers.Index)      // JSONレスポンスを返すエンドポイント
-	api.GET("/rss-ja", handlers.IndexJA) // 日本語版
+	api.GET("/trends-summary/rss", handlers.Index)      // JSONレスポンスを返すエンドポイント
+	api.GET("/trends-summary/rss-ja", handlers.IndexJA) // 日本語版
 
 	// GitHubトレンド用のエンドポイント
 	api.GET("/github-trending", handlers.GitHubTrendingHandler)
@@ -67,12 +67,12 @@ func main() {
 	api.POST("/ai-trends-summary", handlers.AITrendsSummary)
 
 	// 静的ファイルを提供（ワイルドカードの前に配置することが重要）
-	e.Static("/assets", "static/assets")
-	e.Static("/static", "static")
-	e.File("/vite.svg", "static/vite.svg")
+	e.Static("/trends-summary/assets", "static/assets")
+	e.Static("/trends-summary/static", "static")
+	e.File("/trends-summary/vite.svg", "static/vite.svg")
 
 	// ルートアクセスでindex.htmlを返す
-	e.GET("/", func(c echo.Context) error {
+	e.GET("/trends-summary/", func(c echo.Context) error {
 		return c.File("static/index.html")
 	})
 
